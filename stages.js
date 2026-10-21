@@ -109,7 +109,7 @@ const STAGES = [
     steps: [
       { type: 'info', text: 'Androidの人は、ポイントサイトに申し込むときは「Chrome」を使います。',
         sub: 'iPhone向けの準備編（1〜3）の代わりに、ここでChromeの設定を整えよう。' },
-      { type: 'tap', img: 'an-home', text: '「Chrome」を開こう', rect: [180, 531, 86, 84],
+      { type: 'tap', img: 'an-home', banner: { text: '⚙️ ① Cookieの設定' }, text: 'まずはCookieの設定。「Chrome」を開こう', rect: [180, 531, 86, 84],
         traps: [{ rect: [61, 1151, 86, 86], msg: 'スマホの設定ではなく、Chromeを開こう' }] },
       { type: 'tap', img: 'an-chrome', text: '右上の「︙」をタップ', rect: [526, 68, 56, 56] },
       { type: 'tap', img: 'an-menu', text: '「設定」をタップ', rect: [217, 770, 340, 45] },
@@ -123,7 +123,7 @@ const STAGES = [
         review: '「サードパーティ Cookie」は「許可する」にしておく。' },
       { type: 'info', img: 'ansite-end', card: 'top', next: '確認した', marks: [[20, 1028, 550, 92]],
         text: '「サイトの設定」に戻ったら、「JavaScript」が「許可されています」になっていることを確認しよう' },
-      { type: 'tap', img: 'an-home', label: '🧹 次は履歴の削除', text: 'もう一度「Chrome」を開こう', rect: [180, 531, 86, 84],
+      { type: 'tap', img: 'an-home', banner: { text: '🧹 ② 閲覧履歴データの削除' }, text: '次は閲覧履歴データの削除。もう一度「Chrome」を開こう', rect: [180, 531, 86, 84],
         traps: [{ rect: [61, 1151, 86, 86], msg: 'スマホの設定ではなく、Chromeを開こう' }] },
       { type: 'tap', img: 'an-chrome', text: '右上の「︙」をタップ', rect: [526, 68, 56, 56] },
       { type: 'tap', img: 'an-menu', text: '「設定」をタップ', rect: [217, 770, 340, 45] },
