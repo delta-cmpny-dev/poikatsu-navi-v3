@@ -11,7 +11,7 @@ function test(name, fn) {
   try { fn(); checks++; console.log('PASS ' + name); }
   catch (e) { console.error('FAIL ' + name + '\n' + e.stack); process.exitCode = 1; }
 }
-const order = ['safari', 'tracking', 'relay', 'unext-flow', 'unext-pending', 'browser-flow', 'a8-flow', 'passbook', 'passbook-moppy', 'inquiry-hapitas', 'inquiry-moppy', 'fx-demo'];
+const order = ['safari', 'tracking', 'relay', 'android', 'unext-flow', 'unext-pending', 'browser-flow', 'a8-flow', 'passbook', 'passbook-moppy', 'inquiry-hapitas', 'inquiry-moppy', 'fx-demo'];
 test('unique IDs and requested order', () => {
   assert.equal(new Set(stages.map(s => s.id)).size, stages.length);
   assert.equal(JSON.stringify(stages.map(s => s.id)), JSON.stringify(order));
