@@ -123,6 +123,8 @@ const STAGES = [
       { type: 'tap', img: 'ansite-end', text: '次に「サードパーティ Cookie」をタップ', rect: [20, 900, 550, 115] },
       { type: 'tap', img: 'an-3pc', text: '「サードパーティの Cookie を許可する」を選ぼう', rect: [23, 310, 470, 164],
         review: '「サードパーティ Cookie」は「許可する」にしておく。' },
+      { type: 'info', img: 'an-3pc', card: 'bottom', next: '次へ', label: '✅ ① Cookieの設定 完了', marks: [[23, 310, 470, 164]],
+        text: 'これでCookieの設定はおわり！', sub: '次は ② 閲覧履歴データの削除。もう一度Chromeを開くところから始めよう。' },
       { type: 'tap', img: 'an-home', banner: { text: '🧹 ② 閲覧履歴データの削除' }, text: '次は閲覧履歴データの削除。もう一度「Chrome」を開こう', rect: [180, 531, 86, 84],
         traps: [{ rect: [61, 1151, 86, 86], msg: 'スマホの設定ではなく、Chromeを開こう' }] },
       { type: 'tap', img: 'an-chrome', text: '右上の「︙」をタップ', rect: [526, 68, 56, 56] },
