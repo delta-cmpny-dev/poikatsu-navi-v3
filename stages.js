@@ -310,7 +310,7 @@ const STAGES = [
       { type: 'tap', img: 'moppy-top', text: 'Safariでモッピーを開いたら、左上の横3本線を開こう', rect: [22, 175, 64, 64] },
       { type: 'tap', img: 'moppy-menu', text: 'マイページを開こう', rect: [33, 838, 100, 132] },
       { type: 'scroll', img: 'moppy-menu', seq: ['moppymp', 38], len: 1.4, text: '下にスクロールしよう' },
-      { type: 'info', img: 'moppy-pending', card: 'bottom', next: '理解した', marks: [[44, 628, 116, 62]],
+      { type: 'info', img: 'moppy-pending', card: 'bottom', next: '理解した', marks: [[38, 435, 119, 59]],
         text: '判定中：申し込みを実施した直後のステータスです。ポイント獲得条件（FX案件の場合は規定のFX取引）を達成後に承認になります。',
         review: '判定中：申し込みを実施した直後のステータス。ポイント獲得条件（FX案件の場合は規定のFX取引）を達成後に承認になる。' },
       { type: 'info', img: 'moppy-ok', card: 'bottom', next: '理解した', marks: [[174, 419, 113, 60]],
