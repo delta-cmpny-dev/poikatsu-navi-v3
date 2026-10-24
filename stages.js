@@ -7,6 +7,7 @@
 // cardAt: 説明を出す高さ(590x1280の座標)。card より優先
 // alts: rect のほかにも正解にするタップ場所 [[x, y, 幅, 高さ], ...](押す場所と同じく光る枠が出る)
 // marks: 確認してほしい場所に出す枠(押す場所ではない) [[x, y, 幅, 高さ], ...]
+// markLabel: marks の枠に付ける札の文(省略時は「確認」)
 // guide: false をステップに付けると、そのステップだけ最初の枠を出さない
 // traps[].alert: 間違えたときに、トーストではなく重要ポイントとして出す文(進まない)
 // label: カードの上の小さな見出し(省略時は種類ごとの既定)
@@ -399,15 +400,15 @@ const STAGES = [
     lead: 'MXNJPYで合計101lotの取引を練習しよう',
     guide: true,
     steps: [
-      { type: 'info', img: 'fx-light', card: 'mid', next: '確認した', marks: [[105, 142, 380, 49]],
+      { type: 'info', img: 'fx-light2', card: 'mid', next: '確認した', marks: [[105, 142, 380, 49]],
         text: 'アプリの「LIGHTモード」がOFFになっていることを確認しよう', sub: 'OFFになっていなければ、ここをタップしてOFFにしよう。' },
-      { type: 'tap', img: 'fx-light', card: 'mid', text: '下の「スピード注文」をタップ', rect: [198, 1165, 95, 59] },
+      { type: 'tap', img: 'fx-light2', card: 'mid', text: '下の「スピード注文」をタップ', rect: [198, 1165, 95, 59] },
       { type: 'tap', img: 'fx-v1-5', text: '通貨ペアの欄をタップ', rect: [8, 113, 284, 57] },
       { type: 'tap', img: 'fx-v1-15', text: '「MXNJPY」を選ぼう', rect: [60, 520, 150, 105],
         warn: 'この練習ではMXNJPYを選んだけど、使う通貨ペアは案件によって違います！\n必ず案件の手順書で指定された通貨ペアを選ぼう。' },
       { type: 'tap', img: 'fx-v1-32', banner: { text: '⚙️ Lot数の変更（10.0にする）' }, text: '真ん中の「両建: ON…」の欄をタップ', rect: [18, 752, 554, 44] },
       { type: 'tap', img: 'fx-v1-34', banner: { text: '⚙️ Lot数の変更（10.0にする）' }, text: '注文数量の欄をタップ', rect: [310, 450, 165, 55] },
-      { type: 'tap', img: 'fx-v1-45', banner: { text: '⚙️ Lot数の変更（10.0にする）' }, text: '「10」と入力して「OK」をタップ', rect: [298, 798, 252, 68], marks: [[233, 412, 120, 58]] },
+      { type: 'tap', img: 'fx-v1-45', banner: { text: '⚙️ Lot数の変更（10.0にする）' }, text: '「10」と入力して「OK」をタップ', rect: [298, 798, 252, 68], markLabel: '① 「10」と入力されているか確認', marks: [[233, 412, 120, 58]] },
       { type: 'tap', img: 'fx-v1-46', banner: { text: '⚙️ Lot数の変更（10.0にする）' }, text: '注文数量が10.0になったら「設定」をタップ', sub: 'それ以外の項目は、そのままでOK。', rect: [304, 902, 246, 53], marks: [[310, 450, 165, 55]] },
       { type: 'info', img: 'fx-v1-52', card: 'top', next: '確認した', marks: [[244, 850, 104, 48], [306, 1082, 278, 52]],
         text: 'スプレッド（青と赤の間の数字）が0.3以下で、「注文ロック」がOFFになっているか確認しよう',
@@ -421,7 +422,7 @@ const STAGES = [
       { type: 'tap', img: 'fx-v2-13b', banner: { text: '🟦 売りの作業', tone: 'sell' }, text: '「閉じる」をタップ', rect: [38, 694, 244, 54],
         warn: 'これで10lotの取引が1回完了！\nこれを合計10回くり返そう。' },
       { type: 'tap', img: 'fx-v4-2', banner: { text: '⚙️ Lot数の変更（1.0にする）' }, text: '10回終わったら、最後に1Lotで一往復するため、注文数量の欄をタップ', rect: [368, 113, 148, 57] },
-      { type: 'tap', img: 'fx-v4-6', banner: { text: '⚙️ Lot数の変更（1.0にする）' }, text: '「1」と入力して「OK」をタップ', rect: [298, 798, 252, 68], marks: [[233, 412, 120, 58]] },
+      { type: 'tap', img: 'fx-v4-6', banner: { text: '⚙️ Lot数の変更（1.0にする）' }, text: '「1」と入力して「OK」をタップ', rect: [298, 798, 252, 68], markLabel: '① 「1」と入力されているか確認', marks: [[233, 412, 120, 58]] },
       { type: 'tap', img: 'fx1-ask', banner: { text: '🟥 買いの作業', tone: 'buy' }, cardAt: 190, text: '数量が1.0になったら「(買) Ask」をタップ', rect: [302, 810, 268, 128], marks: [[368, 113, 148, 57]] },
       { type: 'tap', img: 'fx1-exec', banner: { text: '🟥 買いの作業', tone: 'buy' }, text: '「注文実行」をタップ', rect: [308, 964, 242, 54] },
       { type: 'tap', img: 'fx1-close1', banner: { text: '🟥 買いの作業', tone: 'buy' }, text: '「閉じる」をタップ', rect: [38, 694, 244, 54] },

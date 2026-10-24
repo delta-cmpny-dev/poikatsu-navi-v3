@@ -279,7 +279,7 @@
     const box = (cls, [x, y, w, h], label = '') => `<div class="${cls}${y < 60 ? ' below' : ''}"${label ? ` data-label="${label}"` : ''} style="left:${x / 5.9}%;top:${y / 12.8}%;width:${w / 5.9}%;height:${h / 12.8}%"></div>`;
     // 確認するだけの枠(青い点線)と押す場所(オレンジ)を、見た目と札で分ける。両方あるときは「①確認 → ②タップ」の順を示す
     const both = s.type === 'tap' && s.marks?.length;
-    $('marks').innerHTML = (s.marks || []).map(r => box('mark check', r, both ? '① 確認するだけ' : '確認')).join('') +
+    $('marks').innerHTML = (s.marks || []).map(r => box('mark check', r, s.markLabel || (both ? '① 確認' : '確認'))).join('') +
       (s.alts || []).map(r => box('mark pulse', r, both ? '② ここでもOK' : 'ここでもOK')).join('');
     target.classList.remove('below');
     target.dataset.label = both ? '② ここをタップ' : 'ここをタップ';
@@ -316,7 +316,9 @@
     const H = shot.clientHeight, f = 1280 / H, m = 6 * f;
     // 札は枠の上に出すのが基本。入らないときは札を枠の下に回す
     for (const below of [false, true]) for (const compact of [card.classList.contains('compact'), true]) {
-      const boxes = rects.map(([, y, , h]) => below ? [y - 3, y + h + 40] : [y - 34, y + h + 8]);
+      // 札の高さは画面上の大きさ(約32px)なので、画像の座標に直してから避ける
+      const L = 32 * f, g = 4 * f;
+      const boxes = rects.map(([, y, , h]) => below ? [y - g, y + h + L] : [y - L, y + h + g]);
       const fits = (top, h) => boxes.every(([a, b]) => top + h <= a || top >= b);
       card.classList.toggle('compact', compact);
       const h = card.offsetHeight * f;
