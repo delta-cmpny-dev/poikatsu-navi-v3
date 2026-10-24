@@ -87,6 +87,7 @@
     font-size: 12px; font-weight: 900; color: #fff; background: var(--accent); padding: 2px 7px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0, 0, 0, .4);
   }
   .mark.check[data-label]::after { background: #1f8bff; }
+  #target.hit::after { content: none; }
   #target.below[data-label]::after, .mark.below[data-label]::after { bottom: auto; top: calc(100% + 6px); }
   #target.hit { display: block; outline-color: var(--ok); background: rgba(23, 166, 115, .25); }
   @keyframes pulse { 50% { box-shadow: 0 0 0 12px rgba(255, 138, 0, .3) } }
@@ -119,6 +120,7 @@
   #card .banner { margin: -2px 0 8px; padding: 8px 12px; border-radius: 10px; background: var(--accent); color: #fff; font-weight: 900; font-size: 20px; line-height: 1.3; text-align: center; }
   #card .banner.buy { background: #e5263a; } #card .banner.sell { background: #1f6fe0; }
   #card.compact b { font-size: 15px; line-height: 1.45; }
+  #card.compact .banner { font-size: 16px; padding: 5px 10px; margin-bottom: 6px; }
   #card.compact p { font-size: 13px; margin-top: 4px; }
   #card.compact .btns { margin-top: 8px; gap: 8px; }
   #card.compact .btns button { padding: 9px; font-size: 14px; }
@@ -275,11 +277,12 @@
     $('swipe').style.display = s.type === 'scroll' ? 'block' : 'none';
     // 確認用の枠(marks)は静止、ほかにも正解の場所(alts)は押す場所と同じく光らせる
     const box = (cls, [x, y, w, h], label = '') => `<div class="${cls}${y < 60 ? ' below' : ''}"${label ? ` data-label="${label}"` : ''} style="left:${x / 5.9}%;top:${y / 12.8}%;width:${w / 5.9}%;height:${h / 12.8}%"></div>`;
-    // タップの場面に確認だけの枠もあるときは、見た目と札で「①確認するだけ → ②タップ」を分ける
+    // 確認するだけの枠(青い点線)と押す場所(オレンジ)を、見た目と札で分ける。両方あるときは「①確認 → ②タップ」の順を示す
     const both = s.type === 'tap' && s.marks?.length;
-    $('marks').innerHTML = (s.marks || []).map(r => box(both ? 'mark check' : 'mark', r, both ? '① 確認するだけ' : '')).join('') +
-      (s.alts || []).map(r => box('mark pulse', r, both ? '② タップ' : '')).join('');
-    if (both) target.dataset.label = '② ここをタップ'; else delete target.dataset.label;
+    $('marks').innerHTML = (s.marks || []).map(r => box('mark check', r, both ? '① 確認するだけ' : '確認')).join('') +
+      (s.alts || []).map(r => box('mark pulse', r, both ? '② ここでもOK' : 'ここでもOK')).join('');
+    target.classList.remove('below');
+    target.dataset.label = both ? '② ここをタップ' : 'ここをタップ';
     updateTarget();
     // カードは正解の場所に重ならない側に出す
     const pos = plain ? 'mid' : s.card || (s.type === 'info' ? 'mid' : s.type === 'quiz' ? 'bottom' : s.type === 'scroll' ? 'top' : s.rect[1] + s.rect[3] / 2 > 640 ? 'top' : 'bottom');
@@ -296,6 +299,7 @@
     if (s.type === 'quiz') html += `<div class="btns">${s.choices.map((c, i) => `<button data-c="${i}">${c.label}</button>`).join('')}</div>`;
     if (s.type === 'info') html += `<div class="btns">${s.video ? '<button class="video-btn" data-video>▶ 手順動画を見る</button>' : ''}<button data-next>${s.next || '次へ'}</button></div>`;
     card.innerHTML = html;
+    if (!plain) avoidBoxes(s);
     card.scrollTop = 0;
     // 新しい画面の画像が表示できるまで、説明と枠を隠す(前の画面の上に枠が浮いて見えないように)
     const layers = [card, target, $('marks')];
@@ -303,6 +307,27 @@
     const reveal = () => { if (stage.steps[si] === s) layers.forEach(e => e.style.visibility = ''); };
     if (img.hidden || !img.src || !img.decode) reveal();
     else { img.decode().then(reveal, reveal); setTimeout(reveal, 700); } // decode が返らない環境でも必ず出す
+  }
+
+  // 説明の窓が、押す場所・確認の枠(上に付く札も含む)に重ならない位置を選ぶ。画面が小さくて入らないときは窓を小さくする
+  function avoidBoxes(s) {
+    const rects = [...(s.marks || []), ...(s.alts || []), ...(s.rect ? [s.rect] : [])];
+    if (!rects.length) return;
+    const H = shot.clientHeight, f = 1280 / H, m = 6 * f;
+    // 札は枠の上に出すのが基本。入らないときは札を枠の下に回す
+    for (const below of [false, true]) for (const compact of [card.classList.contains('compact'), true]) {
+      const boxes = rects.map(([, y, , h]) => below ? [y - 3, y + h + 40] : [y - 34, y + h + 8]);
+      const fits = (top, h) => boxes.every(([a, b]) => top + h <= a || top >= b);
+      card.classList.toggle('compact', compact);
+      const h = card.offsetHeight * f;
+      const cur = (card.offsetTop - (card.classList.contains('mid') ? card.offsetHeight / 2 : 0)) * f;
+      const tops = [cur, m, ...boxes.map(([, b]) => b), 1280 - m - h].filter(t => t >= m - 1 && t + h <= 1280 - m + 1);
+      const ok = tops.find(t => fits(t, h));
+      if (ok == null) continue;
+      if (ok !== cur) { card.classList.remove('top', 'bottom', 'mid'); card.style.top = ok / 12.8 + '%'; }
+      if (below) { target.classList.add('below'); $('marks').querySelectorAll('.mark').forEach(e => e.classList.add('below')); }
+      return;
+    }
   }
 
   // 表示画像・枠・タップ判定で同じコマ番号(1始まり)を使う。
@@ -319,7 +344,8 @@
 
   function updateTarget() {
     const rect = activeRect();
-    target.className = (rect && stage.guide && stage.steps[si].guide !== false ? 'hint' : '') + (rect && rect[1] < 60 ? ' below' : '');
+    const below = target.classList.contains('below') && stage.steps[si].type === 'tap';
+    target.className = (rect && stage.guide && stage.steps[si].guide !== false ? 'hint' : '') + (rect && (rect[1] < 60 || below) ? ' below' : '');
     // スクロールの場面: タップする場所が見えたら、スクロールを促す指マークは消す
     if (stage.steps[si].type === 'scroll' && !busy) $('swipe').style.display = rect ? 'none' : 'block';
     if (rect) {
