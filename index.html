@@ -80,6 +80,14 @@
   /* 確認してほしい場所の枠(押す場所ではない) */
   .mark { position: absolute; outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 8px; pointer-events: none; }
   .mark.pulse { animation: pulse 1s ease-in-out infinite; }
+  /* 確認するだけの枠: 青い点線で、押す場所(オレンジ)と見分ける */
+  .mark.check { outline: 3px dashed #1f8bff; outline-offset: 3px; }
+  #target[data-label]::after, .mark[data-label]::after {
+    content: attr(data-label); position: absolute; left: -4px; bottom: calc(100% + 6px); white-space: nowrap;
+    font-size: 12px; font-weight: 900; color: #fff; background: var(--accent); padding: 2px 7px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0, 0, 0, .4);
+  }
+  .mark.check[data-label]::after { background: #1f8bff; }
+  #target.below[data-label]::after, .mark.below[data-label]::after { bottom: auto; top: calc(100% + 6px); }
   #target.hit { display: block; outline-color: var(--ok); background: rgba(23, 166, 115, .25); }
   @keyframes pulse { 50% { box-shadow: 0 0 0 12px rgba(255, 138, 0, .3) } }
   /* 上にスワイプの案内 */
@@ -266,8 +274,12 @@
     toast.classList.remove('on');
     $('swipe').style.display = s.type === 'scroll' ? 'block' : 'none';
     // 確認用の枠(marks)は静止、ほかにも正解の場所(alts)は押す場所と同じく光らせる
-    const box = (cls, [x, y, w, h]) => `<div class="${cls}" style="left:${x / 5.9}%;top:${y / 12.8}%;width:${w / 5.9}%;height:${h / 12.8}%"></div>`;
-    $('marks').innerHTML = (s.marks || []).map(r => box('mark', r)).join('') + (s.alts || []).map(r => box('mark pulse', r)).join('');
+    const box = (cls, [x, y, w, h], label = '') => `<div class="${cls}${y < 60 ? ' below' : ''}"${label ? ` data-label="${label}"` : ''} style="left:${x / 5.9}%;top:${y / 12.8}%;width:${w / 5.9}%;height:${h / 12.8}%"></div>`;
+    // タップの場面に確認だけの枠もあるときは、見た目と札で「①確認するだけ → ②タップ」を分ける
+    const both = s.type === 'tap' && s.marks?.length;
+    $('marks').innerHTML = (s.marks || []).map(r => box(both ? 'mark check' : 'mark', r, both ? '① 確認するだけ' : '')).join('') +
+      (s.alts || []).map(r => box('mark pulse', r, both ? '② タップ' : '')).join('');
+    if (both) target.dataset.label = '② ここをタップ'; else delete target.dataset.label;
     updateTarget();
     // カードは正解の場所に重ならない側に出す
     const pos = plain ? 'mid' : s.card || (s.type === 'info' ? 'mid' : s.type === 'quiz' ? 'bottom' : s.type === 'scroll' ? 'top' : s.rect[1] + s.rect[3] / 2 > 640 ? 'top' : 'bottom');
@@ -307,7 +319,7 @@
 
   function updateTarget() {
     const rect = activeRect();
-    target.className = rect && stage.guide && stage.steps[si].guide !== false ? 'hint' : '';
+    target.className = (rect && stage.guide && stage.steps[si].guide !== false ? 'hint' : '') + (rect && rect[1] < 60 ? ' below' : '');
     // スクロールの場面: タップする場所が見えたら、スクロールを促す指マークは消す
     if (stage.steps[si].type === 'scroll' && !busy) $('swipe').style.display = rect ? 'none' : 'block';
     if (rect) {
