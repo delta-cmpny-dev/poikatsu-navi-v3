@@ -87,6 +87,7 @@
     font-size: 12px; font-weight: 900; color: #fff; background: var(--accent); padding: 2px 7px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0, 0, 0, .4);
   }
   .mark.check[data-label]::after { background: #1f8bff; }
+  .mark.bare { outline: none; }
   #target.hit::after { content: none; }
   #target.below[data-label]::after, .mark.below[data-label]::after { bottom: auto; top: calc(100% + 6px); }
   #target.hit { display: block; outline-color: var(--ok); background: rgba(23, 166, 115, .25); }
@@ -280,7 +281,8 @@
     // 確認するだけの枠(青い点線)と押す場所(オレンジ)を、見た目と札で分ける。両方あるときは「①確認 → ②タップ」の順を示す
     const both = s.type === 'tap' && s.marks?.length;
     // 札と青い点線は、押す場所と確認の枠が同じ画面にあるときだけ出す(片方だけなら迷わないので出さない)
-    $('marks').innerHTML = (s.marks || []).map(r => both ? box('mark check', r, s.markLabel || '① 確認') : box('mark', r)).join('') +
+    const bare = s.markStyle === 'bare' ? ' bare below' : '';
+    $('marks').innerHTML = (s.marks || []).map(r => both || s.markLabel ? box('mark check' + bare, r, s.markLabel || '① 確認') : box('mark', r)).join('') +
       (s.alts || []).map(r => box('mark pulse', r)).join('');
     target.classList.remove('below');
     if (both) target.dataset.label = '② ここをタップ'; else delete target.dataset.label;

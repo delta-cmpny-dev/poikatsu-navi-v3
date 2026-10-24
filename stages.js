@@ -7,7 +7,8 @@
 // cardAt: 説明を出す高さ(590x1280の座標)。card より優先
 // alts: rect のほかにも正解にするタップ場所 [[x, y, 幅, 高さ], ...](押す場所と同じく光る枠が出る)
 // marks: 確認してほしい場所に出す枠(押す場所ではない) [[x, y, 幅, 高さ], ...]
-// markLabel: marks の枠に付ける札の文(省略時は「確認」)
+// markLabel: marks の枠に付ける札の文(省略時は「確認」)。付けたステップは、確認の枠だけでも札を出す
+// markStyle: 'bare' は枠線を描かない(画像にもともと枠が描かれているとき)。札は枠の下に出す
 // guide: false をステップに付けると、そのステップだけ最初の枠を出さない
 // traps[].alert: 間違えたときに、トーストではなく重要ポイントとして出す文(進まない)
 // label: カードの上の小さな見出し(省略時は種類ごとの既定)
@@ -400,9 +401,10 @@ const STAGES = [
     lead: 'MXNJPYで合計101lotの取引を練習しよう',
     guide: true,
     steps: [
-      { type: 'info', img: 'fx-light2', card: 'mid', next: '確認した', marks: [[105, 142, 380, 49]],
+      { type: 'info', img: 'fx-light3', card: 'mid', next: '確認した', marks: [[90, 123, 413, 84]], markStyle: 'bare', markLabel: '「LIGHTモード」がOFFか確認',
         text: 'アプリの「LIGHTモード」がOFFになっていることを確認しよう', sub: 'OFFになっていなければ、ここをタップしてOFFにしよう。' },
-      { type: 'tap', img: 'fx-light2', card: 'mid', text: '下の「スピード注文」をタップ', rect: [198, 1165, 95, 59] },
+      { type: 'tap', img: 'fx-light3', card: 'mid', text: '下の「スピード注文」をタップ', rect: [198, 1165, 95, 59],
+        marks: [[90, 123, 413, 84]], markStyle: 'bare', markLabel: '① 「LIGHTモード」がOFFか確認' },
       { type: 'tap', img: 'fx-v1-5', text: '通貨ペアの欄をタップ', rect: [8, 113, 284, 57] },
       { type: 'tap', img: 'fx-v1-15', text: '「MXNJPY」を選ぼう', rect: [60, 520, 150, 105],
         warn: 'この練習ではMXNJPYを選んだけど、使う通貨ペアは案件によって違います！\n必ず案件の手順書で指定された通貨ペアを選ぼう。' },
