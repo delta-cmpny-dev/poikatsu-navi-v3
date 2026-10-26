@@ -251,7 +251,7 @@
       let head = '';
       if (i === 0 || list[i - 1].area !== s.area) {
         const a = AREAS[s.area], mates = list.filter(t => t.area === s.area), got = mates.filter(t => isCleared(t.id)).length;
-        head = `<div class="area"><em>${s.area + 1}</em><div><b>${a.name}</b><br><small>${a.desc}</small></div>` +
+        head = `<div class="area"><em>${"ⅠⅡⅢⅣⅤⅥ"[s.area]}</em><div><b>${a.name}</b><br><small>${a.desc}</small></div>` +
           `<span class="${got === mates.length ? 'all' : ''}">${got}/${mates.length}</span></div>`;
       }
       return head + `<button class="stage" data-i="${STAGES.indexOf(s)}"><span class="stage-number">${i + 1}</span><b>${s.title}</b><span>${s.lead}</span>` +
