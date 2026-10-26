@@ -71,7 +71,7 @@ const STAGES = [
   {
     id: 'tracking',
     device: 'iphone',
-    title: '準備編Ⅱ　トラッキング設定',
+    title: '準備編②　トラッキング設定',
     lead: 'アプリからのトラッキング要求を許可しておく設定',
     guide: true,
     steps: [
@@ -89,7 +89,7 @@ const STAGES = [
   {
     id: 'relay',
     device: 'iphone',
-    title: '準備編Ⅲ　プライベートリレー',
+    title: '準備編③　プライベートリレー',
     lead: 'iCloudプライベートリレーをオフにする設定',
     guide: true,
     steps: [
