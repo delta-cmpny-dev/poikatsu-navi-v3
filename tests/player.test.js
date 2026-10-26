@@ -56,7 +56,7 @@ assert.match(node('stages').innerHTML, /クリア済み ✓/);
 assert.match(node('done').innerHTML, /全12ステージ中 <em>1<\/em>/);
 // iPhoneでは準備編(Android版)を出さず数えない。Androidを選ぶとiPhone用の準備編3つが消える
 assert.doesNotMatch(node('stages').innerHTML, /Android版/);
-assert.match(node('stages').innerHTML, /じゅんび編[\s\S]*1\/3/);
+assert.match(node('stages').innerHTML, /準備編[\s\S]*1\/3/);
 saved.set('v3-device', 'android'); run('home()');
 assert.match(node('done').innerHTML, /全10ステージ中/);
 assert.match(node('stages').innerHTML, /Android版/);

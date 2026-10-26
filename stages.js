@@ -450,7 +450,7 @@ const STAGES = [
 
 // ステージ一覧の区切り。start のステージから次の区切りの手前までを、1つのまとまりとして見せる
 const AREAS = [
-  { start: 'safari', name: 'じゅんび編', desc: '申し込みの前にやっておく設定' },
+  { start: 'safari', name: '準備編', desc: '申し込みの前にやっておく設定' },
   { start: 'unext-flow', name: 'はじめての案件編', desc: '案件の進め方' },
   { start: 'passbook', name: 'ポイント確認編', desc: '通帳の見方・問い合わせ' },
   { start: 'fx-demo', name: 'FX編', desc: 'FX案件の練習' },
