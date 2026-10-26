@@ -28,6 +28,7 @@ function fxScreen(title, body = '', buttons = []) {
 const STAGES = [
   {
     id: 'safari',
+    device: 'iphone',
     guide: true,
     title: '準備編　Safariの設定',
     lead: '申し込みの前にやっておく設定',
@@ -69,6 +70,7 @@ const STAGES = [
   },
   {
     id: 'tracking',
+    device: 'iphone',
     title: '準備編Ⅱ　トラッキング設定',
     lead: 'アプリからのトラッキング要求を許可しておく設定',
     guide: true,
@@ -86,6 +88,7 @@ const STAGES = [
   },
   {
     id: 'relay',
+    device: 'iphone',
     title: '準備編Ⅲ　プライベートリレー',
     lead: 'iCloudプライベートリレーをオフにする設定',
     guide: true,
@@ -105,6 +108,7 @@ const STAGES = [
   },
   {
     id: 'android',
+    device: 'android',
     guide: true,
     title: '準備編（Android版）　Chromeの設定',
     lead: 'Androidの人が申し込みの前にやっておく設定',
@@ -442,4 +446,12 @@ const STAGES = [
         warn: '10lotの買と売の2行で1セット。\n10lotが10セット、1lotが1セット、合計11セットあることを確認！\n11セット全て表示されない場合は、画面を下にスクロールしよう。' },
     ],
   },
+];
+
+// ステージ一覧の区切り。start のステージから次の区切りの手前までを、1つのまとまりとして見せる
+const AREAS = [
+  { start: 'safari', name: 'じゅんび編', desc: '申し込みの前にやっておく設定' },
+  { start: 'unext-flow', name: 'はじめての案件編', desc: '案件の進め方' },
+  { start: 'passbook', name: 'ポイント確認編', desc: '通帳の見方・問い合わせ' },
+  { start: 'fx-demo', name: 'FX編', desc: 'FX案件の練習' },
 ];

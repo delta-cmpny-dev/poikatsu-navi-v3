@@ -34,6 +34,17 @@
   #done { background: rgba(255, 255, 255, .12); border-radius: 14px; padding: 12px 16px; }
   #done b { font-size: 17px; } #done b em { font-style: normal; font-size: 26px; color: var(--accent); }
   #done .track { margin-top: 8px; }
+  /* お使いのスマホ(準備編の出し分けに使う) */
+  #device { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; }
+  #device button { flex: 1; padding: 10px; border-radius: 12px; background: rgba(255, 255, 255, .12); font-size: 16px; font-weight: 900; border: 2px solid transparent; }
+  #device button.on { background: #fff; color: var(--ink); border-color: var(--accent); }
+  /* まとまりの見出し */
+  .area { display: flex; align-items: baseline; gap: 10px; margin-top: 10px; padding-bottom: 6px; border-bottom: 2px solid rgba(255, 255, 255, .25); }
+  .area em { font-style: normal; font-size: 13px; font-weight: 900; background: var(--accent); color: #fff; border-radius: 8px; padding: 2px 8px; flex: none; }
+  .area b { font-size: 21px; }
+  .area small { font-size: 13px; opacity: .8; }
+  .area span { margin-left: auto; font-size: 14px; font-weight: 900; flex: none; }
+  .area span.all { color: var(--ok); }
   .stage .stage-number { position: absolute; top: 18px; left: 14px; margin: 0; width: 34px; height: 34px; border-radius: 50%; background: #eaf0ff; color: #1d3272; display: grid; place-items: center; font-weight: 900; }
 
   /* ---- プレイ画面 ---- */
@@ -165,6 +176,7 @@
 <section id="home" class="view on">
   <h1>さわって覚える<br>ポイ活ナビ</h1>
   <p>実際の画面をタップしながら、申し込みの手順と注意点を練習できます。本物の申し込みは行われません。</p>
+  <div id="device">お使いのスマホ<button data-d="iphone">iPhone</button><button data-d="android">Android</button></div>
   <div id="done"></div>
   <div id="stages" style="display:flex; flex-direction:column; gap:14px"></div>
 </section>
@@ -215,6 +227,13 @@
   const isCleared = id => { try { return localStorage.getItem(KEY + id) === 'true'; } catch { return false; } };
   const saveClear = id => { try { localStorage.setItem(KEY + id, 'true'); } catch {} };
 
+  // 準備編はスマホに合うものだけ出す。最初は端末から推測し、選び直したら覚えておく
+  const DEVICE = 'v3-device';
+  const device = () => { try { const d = localStorage.getItem(DEVICE); if (d) return d; } catch {} return /android/i.test(navigator.userAgent || '') ? 'android' : 'iphone'; };
+  const visible = () => STAGES.filter(s => !s.device || s.device === device());
+  // まとまりは、全ステージの並び順で決める(?only で絞り込んでも変わらないよう、先に付けておく)
+  STAGES.forEach((s, i) => { s.area = AREAS.reduce((a, r, k) => (i >= STAGES.findIndex(t => t.id === r.start) ? k : a), 0); });
+
   function show(id) {
     document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === id));
     window.scrollTo(0, 0);
@@ -225,14 +244,22 @@
     busy = true;
     down = null;
     $('modal').classList.remove('on');
-    $('stages').innerHTML = STAGES.map((s, i) => {
+    const list = visible();
+    document.querySelectorAll('#device button').forEach(b => b.classList.toggle('on', b.dataset.d === device()));
+    $('stages').innerHTML = list.map((s, i) => {
       const done = isCleared(s.id);
-      return `<button class="stage" data-i="${i}"><span class="stage-number">${i + 1}</span><b>${s.title}</b><span>${s.lead}</span>` +
+      let head = '';
+      if (i === 0 || list[i - 1].area !== s.area) {
+        const a = AREAS[s.area], mates = list.filter(t => t.area === s.area), got = mates.filter(t => isCleared(t.id)).length;
+        head = `<div class="area"><em>${s.area + 1}</em><div><b>${a.name}</b><br><small>${a.desc}</small></div>` +
+          `<span class="${got === mates.length ? 'all' : ''}">${got}/${mates.length}</span></div>`;
+      }
+      return head + `<button class="stage" data-i="${STAGES.indexOf(s)}"><span class="stage-number">${i + 1}</span><b>${s.title}</b><span>${s.lead}</span>` +
         (done ? `<i>クリア済み ✓</i>` : `<i class="none">まだクリアしていません</i>`) + `</button>`;
     }).join('');
-    const n = STAGES.filter(s => isCleared(s.id)).length;
-    $('done').innerHTML = `<b>全${STAGES.length}ステージ中 <em>${n}</em> ステージクリア</b>` +
-      `<div class="track"><i style="width:${n / STAGES.length * 100}%"></i></div>`;
+    const n = list.filter(s => isCleared(s.id)).length;
+    $('done').innerHTML = `<b>全${list.length}ステージ中 <em>${n}</em> ステージクリア</b>` +
+      `<div class="track"><i style="width:${n / list.length * 100}%"></i></div>`;
     show('home');
   }
 
@@ -411,7 +438,7 @@
     const warns = stage.steps.flatMap(s => [s.review, s.warn].filter(Boolean));
     $('review').innerHTML = warns.map(w => `<li>${w}</li>`).join('');
     $('reviewTitle').style.display = warns.length ? '' : 'none';
-    $('next').style.display = STAGES.indexOf(stage) < STAGES.length - 1 ? '' : 'none';
+    $('next').style.display = nextStage() >= 0 ? '' : 'none';
     show('clear');
   }
 
@@ -518,7 +545,10 @@
   $('quit').onclick = home;
   $('back').onclick = home;
   $('again').onclick = () => start(STAGES.indexOf(stage));
-  $('next').onclick = () => start(STAGES.indexOf(stage) + 1);
+  // 次のステージ: 自分のスマホ向けでない準備編は飛ばす
+  function nextStage() { const list = visible(); const k = list.indexOf(stage); return k >= 0 && k < list.length - 1 ? STAGES.indexOf(list[k + 1]) : -1; }
+  $('next').onclick = () => start(nextStage());
+  document.querySelectorAll('#device button').forEach(b => b.onclick = () => { try { localStorage.setItem(DEVICE, b.dataset.d); } catch {} home(); });
   // ?only=safari,passbook のように指定すると、そのステージだけを出す(ステージ単位で共有するとき用)
   const only = new URLSearchParams(location.search).get('only');
   if (only) {
