@@ -30,7 +30,7 @@ const STAGES = [
     id: 'safari',
     device: 'iphone',
     guide: true,
-    title: '準備編　Safariの設定',
+    title: '準備編①　Safariの設定',
     lead: '申し込みの前にやっておく設定',
     steps: [
       { type: 'info', img: 'safari-15', text: 'ポイントサイトに申し込むときは、必ず「Safari」を使います。',
