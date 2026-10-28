@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>さわって覚える ポイ活ナビ</title>
+<style>
+  :root {
+    --bg: #0f1b3d; --bg2: #1d3272; --ink: #14213d; --accent: #ff8a00;
+    --warn: #e5263a; --ok: #17a673; --line: #d9deea;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    background: linear-gradient(170deg, var(--bg), var(--bg2)) fixed; color: #fff;
+    font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+    overscroll-behavior: none; user-select: none; -webkit-user-select: none;
+  }
+  button { font: inherit; color: inherit; border: 0; cursor: pointer; }
+  .view { display: none; min-height: 100dvh; }
+  .view.on { display: flex; flex-direction: column; }
+
+  /* ---- ステージ一覧 ---- */
+  #home { padding: 48px 20px 32px; gap: 18px; max-width: 520px; margin: 0 auto; }
+  #home h1 { font-size: 30px; line-height: 1.35; }
+  #home p { opacity: .85; line-height: 1.6; }
+  .stage { background: #fff; color: var(--ink); border-radius: 18px; padding: 18px 20px; text-align: left; display: block; width: 100%; }
+  .stage b { display: block; font-size: 20px; }
+  .stage span { display: block; font-size: 14px; color: #55607a; margin-top: 4px; }
+  .stage i { display: block; font-style: normal; margin-top: 10px; font-size: 14px; color: var(--ok); }
+  .stage i.none { color: #55607a; }
+  .stage { position: relative; padding-left: 62px; }
+  /* 全体の進み具合(何ステージ中いくつクリアしたか) */
+  #done { background: rgba(255, 255, 255, .12); border-radius: 14px; padding: 12px 16px; }
+  #done b { font-size: 17px; } #done b em { font-style: normal; font-size: 26px; color: var(--accent); }
+  #done .track { margin-top: 8px; }
+  /* お使いのスマホ(準備編の出し分けに使う) */
+  #device { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; }
+  #device button { flex: 1; padding: 10px; border-radius: 12px; background: rgba(255, 255, 255, .12); font-size: 16px; font-weight: 900; border: 2px solid transparent; }
+  #device button.on { background: #fff; color: var(--ink); border-color: var(--accent); }
+  /* まとまりの見出し */
+  .area { display: flex; align-items: baseline; gap: 10px; margin-top: 10px; padding-bottom: 6px; border-bottom: 2px solid rgba(255, 255, 255, .25); }
+  .area em { font-style: normal; font-size: 13px; font-weight: 900; background: var(--accent); color: #fff; border-radius: 8px; padding: 2px 8px; flex: none; }
+  .area b { font-size: 21px; }
+  .area small { font-size: 13px; opacity: .8; }
+  .area span { margin-left: auto; font-size: 14px; font-weight: 900; flex: none; }
+  .area span.all { color: var(--ok); }
+  .stage .stage-number { position: absolute; top: 18px; left: 14px; margin: 0; width: 34px; height: 34px; border-radius: 50%; background: #eaf0ff; color: #1d3272; display: grid; place-items: center; font-weight: 900; }
+
+  /* ---- プレイ画面 ---- */
+  #play { align-items: center; height: 100dvh; }
+  .bar { width: 100%; max-width: 520px; height: 48px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 12px; }
+  .bar button { background: rgba(255, 255, 255, .15); width: 36px; height: 36px; border-radius: 50%; font-size: 18px; }
+  .track { flex: 1; height: 10px; background: rgba(255, 255, 255, .2); border-radius: 99px; overflow: hidden; }
+  .track i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 99px; transition: width .3s; }
+  /* スクショの枠。高さに合わせて、比率 590:1280 を保つ */
+  #shot {
+    position: relative; flex: none; height: min(calc(100dvh - 48px), calc(100vw * 1280 / 590)); aspect-ratio: 590 / 1280; max-width: 100vw;
+    overflow: hidden; touch-action: none; background: #000;
+  }
+  #shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; pointer-events: none; -webkit-user-drag: none; }
+  #shot.dim img { filter: brightness(.45); }
+  #shot.quiz img { filter: brightness(.75); }
+  #shot.plain { background: #f2f6fb; }
+  #scene { position: absolute; left: 0; top: 0; width: 590px; height: 1280px; transform-origin: top left; background: #f3f5f8; color: #24334a; pointer-events: none; }
+  #shot.dim #scene { filter: brightness(.65); }
+  #shot.quiz #scene { filter: brightness(.85); }
+  .fx-address { height: 128px; padding: 12px 28px; background: #e4e9ef; font-size: 21px; }
+  .fx-address div { margin-top: 12px; padding: 12px; border-radius: 12px; text-align: center; background: #fff; }
+  .fx-brand { height: 84px; padding: 22px 30px; background: #fff; border-bottom: 2px solid #d9deea; font-size: 32px; font-weight: 900; }
+  .fx-brand span { float: right; font-size: 20px; line-height: 40px; color: #66748a; }
+  .fx-body { padding: 36px 32px; font-size: 27px; line-height: 1.6; }
+  .fx-body h2 { font-size: 32px; margin-bottom: 26px; }
+  .fx-body h3 { font-size: 34px; margin: 20px 0; }
+  .fx-body label { display: block; margin-top: 16px; font-size: 23px; color: #56647a; }
+  .fx-field { border: 2px solid #c5cfdd; border-radius: 12px; padding: 20px; background: #fff; margin: 10px 0 24px; }
+  .fx-badge { background: #e2f4ef; color: #167b60; border-radius: 12px; padding: 12px; }
+  .fx-body .fx-points { font-size: 56px; font-weight: 900; color: #da6b00; }
+  .fx-success { color: #128464; font-size: 64px; font-weight: 900; margin: 22px 0; }
+  .fx-button { position: absolute; display: grid; place-items: center; border-radius: 14px; background: #167d72; border: 2px solid #11685f; color: #fff; font-size: 29px; font-weight: 700; }
+  .fx-button.muted { background: #e2e7ef; border-color: #bac4d3; color: #4a5870; }
+  .fx-footer { position: absolute; bottom: 0; width: 100%; height: 85px; background: #e4e9ef; text-align: center; padding: 20px; font-size: 32px; }
+  #shot.shake { animation: shake .3s; }
+  @keyframes shake { 25% { transform: translateX(-8px) } 50% { transform: translateX(8px) } 75% { transform: translateX(-5px) } }
+  #shot.up img { transition: transform .45s ease-in, opacity .45s; transform: translateY(-35%); opacity: 0; }
+
+  /* 正解の場所(ヒントとして出す枠) */
+  /* 枠は指定範囲の外側に描く(中の文字に線が重ならないように) */
+  #target { position: absolute; outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 8px; display: none; pointer-events: none; }
+  #target.hint { display: block; animation: pulse 1s ease-in-out infinite; }
+  /* 確認してほしい場所の枠(押す場所ではない) */
+  .mark { position: absolute; outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 8px; pointer-events: none; }
+  .mark.pulse { animation: pulse 1s ease-in-out infinite; }
+  /* 確認するだけの枠: 青い点線で、押す場所(オレンジ)と見分ける */
+  .mark.check { outline: 3px dashed #1f8bff; outline-offset: 3px; }
+  #target[data-label]::after, .mark[data-label]::after {
+    content: attr(data-label); position: absolute; left: -4px; bottom: calc(100% + 6px); white-space: nowrap;
+    font-size: 12px; font-weight: 900; color: #fff; background: var(--accent); padding: 2px 7px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0, 0, 0, .4);
+  }
+  .mark.check[data-label]::after { background: #1f8bff; }
+  .mark.bare { outline: none; }
+  #target.hit::after { content: none; }
+  #target.below[data-label]::after, .mark.below[data-label]::after { bottom: auto; top: calc(100% + 6px); }
+  #target.hit { display: block; outline-color: var(--ok); background: rgba(23, 166, 115, .25); }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 12px rgba(255, 138, 0, .3) } }
+  /* 上にスワイプの案内 */
+  #swipe { position: absolute; left: 50%; top: 62%; font-size: 54px; margin-left: -27px; display: none; pointer-events: none; animation: swipe 1.3s ease-in-out infinite; }
+  @keyframes swipe { 0% { transform: translateY(40px); opacity: 0 } 30% { opacity: 1 } 100% { transform: translateY(-110px); opacity: 0 } }
+  /* 間違えたときのひとこと */
+  #toast {
+    position: absolute; transform: translate(-50%, -130%); background: var(--warn); color: #fff; font-weight: 700; font-size: 15px;
+    padding: 8px 14px; border-radius: 12px; width: max-content; max-width: 92%; white-space: normal; pointer-events: none; opacity: 0; transition: opacity .2s; z-index: 5;
+  }
+  #toast.on { opacity: 1; }
+
+  /* 指示のカード */
+  #card {
+    position: absolute; left: 10px; right: 10px; background: #fff; color: var(--ink); border-radius: 16px; padding: 14px 16px;
+    /* 白い画面の上でも見分けられるよう、濃い枠で囲む */
+    border: 3px solid var(--ink);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, .9), 0 8px 24px rgba(0, 0, 0, .55); z-index: 4;
+    max-height: calc(100% - 20px); overflow-y: auto; touch-action: pan-y;
+  }
+  #card.top { top: 10px; } #card.bottom { bottom: 10px; } #card.mid { top: 50%; transform: translateY(-50%); }
+  #card small { display: block; color: var(--accent); font-weight: 900; font-size: 12px; margin-bottom: 4px; }
+  #card b { display: block; font-size: 18px; line-height: 1.45; }
+  #card p { font-size: 14px; line-height: 1.6; color: #55607a; margin-top: 6px; }
+  #card .btns { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+  #card .btns button { background: var(--ink); color: #fff; font-weight: 700; font-size: 16px; padding: 14px; border-radius: 12px; }
+  #card .btns button.ng { background: #b3bbcc; }
+  #card.compact { padding: 10px 14px; }
+  #card .banner { margin: -2px 0 8px; padding: 8px 12px; border-radius: 10px; background: var(--accent); color: #fff; font-weight: 900; font-size: 20px; line-height: 1.3; text-align: center; }
+  #card .banner.buy { background: #e5263a; } #card .banner.sell { background: #1f6fe0; }
+  #card.compact b { font-size: 15px; line-height: 1.45; }
+  #card.compact .banner { font-size: 16px; padding: 5px 10px; margin-bottom: 6px; }
+  #card.compact p { font-size: 13px; margin-top: 4px; }
+  #card.compact .btns { margin-top: 8px; gap: 8px; }
+  #card.compact .btns button { padding: 9px; font-size: 14px; }
+  #card .btns button.video-btn { background: #eaf0ff; color: #1d3272; border: 2px solid #1d3272; }
+  /* 手順動画の再生画面 */
+  #player { position: fixed; inset: 0; background: #000; display: none; flex-direction: column; z-index: 20; }
+  #player.on { display: flex; }
+  #player video { flex: 1; min-height: 0; width: 100%; object-fit: contain; background: #000; }
+  #player button { flex: none; margin: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: var(--accent); color: #fff; font-weight: 900; font-size: 16px; padding: 14px; border-radius: 12px; }
+
+  /* 重要ポイントの表示 */
+  #modal { position: fixed; inset: 0; background: rgba(8, 14, 34, .75); display: none; align-items: center; justify-content: center; padding: 24px; z-index: 10; }
+  #modal.on { display: flex; }
+  #modal.at-bottom { align-items: flex-end; } #modal.at-top { align-items: flex-start; }
+  /* 赤枠の中に、ダメであることを示す×を点滅させる */
+  #warnMark::before, #warnMark::after { content: ""; position: absolute; left: 50%; top: 50%; width: 6px; height: min(150%, 90px); margin: 0 -3px; background: #ff3b3b; border-radius: 3px; box-shadow: 0 0 6px rgba(0, 0, 0, .5); animation: ngBlink .8s steps(1) infinite; }
+  #warnMark::before { transform: translate(0, -50%) rotate(45deg); }
+  #warnMark::after { transform: translate(0, -50%) rotate(-45deg); }
+  @keyframes ngBlink { 50% { opacity: 0; } }
+  #modal.marked { background: transparent; padding-top: 0; padding-bottom: 0; } /* 暗くするのは赤枠の外側だけ(赤枠の中の画面は見えるように) */
+  /* 重要ポイントが指している場所(ポップアップの後ろの画面の上に、赤い枠で出す) */
+  #warnMark { position: absolute; display: none; outline: 4px solid #ff3b3b; outline-offset: 3px; border-radius: 8px; z-index: 9; pointer-events: none; box-shadow: 0 0 0 9999px rgba(8, 14, 34, .55); }
+  #modal div { background: #fff; color: var(--ink); border-radius: 20px; padding: 24px 20px; max-width: 420px; max-height: calc(100dvh - 48px); overflow-y: auto; width: 100%; text-align: center; animation: pop .3s cubic-bezier(.2, 1.4, .4, 1); }
+  @keyframes pop { from { transform: scale(.7); opacity: 0 } }
+  #modal em { display: block; font-style: normal; font-weight: 900; color: var(--warn); font-size: 18px; margin-bottom: 10px; }
+  #modal p { font-size: 17px; line-height: 1.7; font-weight: 700; text-align: left; white-space: pre-line; }
+  #modal button { margin-top: 18px; background: var(--warn); color: #fff; font-weight: 900; font-size: 17px; padding: 14px; border-radius: 12px; width: 100%; }
+
+  /* ---- クリア画面 ---- */
+  #clear { padding: 56px 20px 32px; gap: 16px; max-width: 520px; margin: 0 auto; text-align: center; }
+  #clear h2 { font-size: 30px; }
+  #clear ul { list-style: none; text-align: left; display: flex; flex-direction: column; gap: 10px; }
+  #clear li { background: #fff; color: var(--ink); border-left: 8px solid var(--warn); border-radius: 12px; padding: 12px 14px; font-size: 15px; line-height: 1.6; font-weight: 700; white-space: pre-line; }
+  #clear h3 { text-align: left; font-size: 16px; margin-top: 8px; }
+  .wide { background: var(--accent); color: #fff; font-weight: 900; font-size: 17px; padding: 16px; border-radius: 14px; width: 100%; }
+  .wide.sub { background: rgba(255, 255, 255, .15); }
+</style>
+</head>
+<body>
+
+<section id="home" class="view on">
+  <h1>さわって覚える<br>ポイ活ナビ</h1>
+  <p>実際の画面をタップしながら、申し込みの手順と注意点を練習できます。本物の申し込みは行われません。</p>
+  <div id="device">お使いのスマホ<button data-d="iphone">iPhone</button><button data-d="android">Android</button></div>
+  <div id="done"></div>
+  <div id="stages" style="display:flex; flex-direction:column; gap:14px"></div>
+</section>
+
+<section id="play" class="view">
+  <div class="bar">
+    <button id="quit" aria-label="やめる">✕</button>
+    <div class="track"><i id="prog"></i></div>
+  </div>
+  <div id="shot">
+    <img id="img" alt="">
+    <div id="scene" hidden aria-hidden="true"></div>
+    <div id="target"></div>
+    <div id="marks"></div>
+    <div id="warnMark"></div>
+    <div id="swipe">👆</div>
+    <div id="toast"></div>
+    <div id="card"></div>
+  </div>
+</section>
+
+<section id="clear" class="view">
+  <h2>ステージクリア！</h2>
+  <h3 id="reviewTitle">⚠️ 重要ポイントのおさらい</h3>
+  <ul id="review"></ul>
+  <button class="wide" id="next">次のステージへ</button>
+  <button class="wide sub" id="again">もう一度</button>
+  <button class="wide sub" id="back">ステージ一覧</button>
+</section>
+
+<div id="player"><video id="video" controls playsinline preload="none"></video><button id="playerClose">閉じて練習に戻る</button></div>
+<div id="modal"><div><em>⚠️ 重要ポイント</em><p id="modalText"></p><button id="modalOk">わかった</button></div></div>
+
+<!-- ステージの中身は更新が多いので、毎回最新を読む(スマホのキャッシュ対策) -->
+<script>document.write('<script src="stages.js?t=' + Date.now() + '"><\/script>');</script>
+<script>
+  const $ = id => document.getElementById(id);
+  const shot = $('shot'), img = $('img'), scene = $('scene'), target = $('target'), card = $('card'), toast = $('toast');
+  const src = name => `img/${name}.jpg`;
+  const seqSrc = (s, k) => `img/seq/${s.seq[0]}-${String(k + 1).padStart(2, '0')}.jpg`;
+  let stage, si, stepMisses, busy, scrollP;
+  let playVersion = 0;
+  const resizeScene = () => { scene.style.transform = `scale(${shot.getBoundingClientRect().width / 590})`; };
+  new ResizeObserver(resizeScene).observe(shot);
+
+  // クリアの有無だけ保存。同じドメインの別の版と記録が混ざらないよう、版ごとに名前を分ける。
+  const KEY = 'v3-cleared-';
+  const isCleared = id => { try { return localStorage.getItem(KEY + id) === 'true'; } catch { return false; } };
+  const saveClear = id => { try { localStorage.setItem(KEY + id, 'true'); } catch {} };
+
+  // 準備編はスマホに合うものだけ出す。最初は端末から推測し、選び直したら覚えておく
+  const DEVICE = 'v3-device';
+  const device = () => { try { const d = localStorage.getItem(DEVICE); if (d) return d; } catch {} return /android/i.test(navigator.userAgent || '') ? 'android' : 'iphone'; };
+  const visible = () => STAGES.filter(s => !s.device || s.device === device());
+  // Androidを選んだ人には、準備編のあとのステージも「Safari」を「Chrome」と書いて見せる(ブラウザの中の画面はiPhoneのまま)。
+  // 言い方や画像を変えたいステップは、そのステップの android に書く。base は元のステージ(次のステージ・もう一度で使う)
+  const swapBrowser = v => typeof v === 'string' ? v.replace(/Safari/g, 'Chrome')
+    : Array.isArray(v) ? v.map(swapBrowser)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, swapBrowser(x)])) : v;
+  const forDevice = st => device() === 'android'
+    ? { ...swapBrowser({ ...st, steps: st.steps.map(s => ({ ...s, ...s.android })) }), base: st }
+    : { ...st, base: st };
+  // まとまりは、全ステージの並び順で決める(?only で絞り込んでも変わらないよう、先に付けておく)
+  STAGES.forEach((s, i) => { s.area = AREAS.reduce((a, r, k) => (i >= STAGES.findIndex(t => t.id === r.start) ? k : a), 0); });
+
+  function show(id) {
+    document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === id));
+    window.scrollTo(0, 0);
+  }
+
+  function home() {
+    playVersion++;
+    busy = true;
+    down = null;
+    $('modal').classList.remove('on');
+    const list = visible();
+    document.querySelectorAll('#device button').forEach(b => b.classList.toggle('on', b.dataset.d === device()));
+    $('stages').innerHTML = list.map((s, i) => {
+      const done = isCleared(s.id);
+      let head = '';
+      if (i === 0 || list[i - 1].area !== s.area) {
+        const a = AREAS[s.area], mates = list.filter(t => t.area === s.area), got = mates.filter(t => isCleared(t.id)).length;
+        head = `<div class="area"><em>${"ⅠⅡⅢⅣⅤⅥ"[s.area]}</em><div><b>${a.name}</b><br><small>${a.desc}</small></div>` +
+          `<span class="${got === mates.length ? 'all' : ''}">${got}/${mates.length}</span></div>`;
+      }
+      const { title, lead } = forDevice(s);
+      return head + `<button class="stage" data-i="${STAGES.indexOf(s)}"><span class="stage-number">${i + 1}</span><b>${title}</b><span>${lead}</span>` +
+        (done ? `<i>クリア済み ✓</i>` : `<i class="none">まだクリアしていません</i>`) + `</button>`;
+    }).join('');
+    const n = list.filter(s => isCleared(s.id)).length;
+    $('done').innerHTML = `<b>全${list.length}ステージ中 <em>${n}</em> ステージクリア</b>` +
+      `<div class="track"><i style="width:${n / list.length * 100}%"></i></div>`;
+    show('home');
+  }
+
+  function start(i) {
+    playVersion++;
+    stage = forDevice(STAGES[i]); si = 0;
+    stage.steps.forEach(s => {
+      if (s.img && !s.html) new Image().src = src(s.img);
+      if (s.after) new Image().src = src(s.after);
+      if (s.seq) for (let k = 0; k < s.seq[1]; k++) new Image().src = seqSrc(s, k);
+    });
+    show('play');
+    step();
+  }
+
+  // 表示用の番号: 「スクロールして探してタップ」はスクロールとタップで1つと数える
+  // (スクロールの途中でタップすると次のタップを飛ばすため、別々に数えると番号が飛ぶ)
+  function stepNo(i) {
+    const merged = k => k > 0 && stage.steps[k].type === 'tap' && stage.steps[k - 1].type === 'scroll' && stage.steps[k - 1].target;
+    let no = 0, total = 0;
+    stage.steps.forEach((_, k) => { if (!merged(k)) total++; if (k <= i && !merged(k)) no++; });
+    return [no, total];
+  }
+
+  let alerting = false;
+  function step() {
+    const s = stage.steps[si];
+    busy = false; stepMisses = 0; scrollP = 0;
+    const [no, total] = stepNo(si);
+    $('prog').style.width = (no - 1) / total * 100 + '%';
+    const plain = !s.img && !s.html && !s.seq;
+    img.hidden = Boolean(s.html) || plain;
+    if (img.hidden) img.removeAttribute('src');
+    else img.src = s.seq ? seqSrc(s, 0) : src(s.img);
+    scene.hidden = !s.html;
+    scene.innerHTML = s.html || '';
+    resizeScene();
+    shot.className = plain ? 'plain' : '';
+    // 説明・クイズの長いカードは小画面でも指でスクロールできるようにする。
+    shot.style.touchAction = s.type === 'info' || s.type === 'quiz' ? 'pan-y' : 'none';
+    clearTimeout(miss.t);
+    toast.classList.remove('on');
+    $('swipe').style.display = s.type === 'scroll' ? 'block' : 'none';
+    // 確認用の枠(marks)は静止、ほかにも正解の場所(alts)は押す場所と同じく光らせる
+    const box = (cls, [x, y, w, h], label = '') => `<div class="${cls}${y < 60 ? ' below' : ''}"${label ? ` data-label="${label}"` : ''} style="left:${x / 5.9}%;top:${y / 12.8}%;width:${w / 5.9}%;height:${h / 12.8}%"></div>`;
+    // 確認するだけの枠(青い点線)と押す場所(オレンジ)を、見た目と札で分ける。両方あるときは「①確認 → ②タップ」の順を示す
+    const both = s.type === 'tap' && s.marks?.length;
+    // 確認の枠はすべて青い点線と「確認」の札。押す場所と同じ画面にあるときは「①確認 → ②タップ」の順を示す
+    const bare = s.markStyle === 'bare' ? ' bare below' : '';
+    $('marks').innerHTML = (s.marks || []).map(r => box('mark check' + bare, r, s.markLabel || (both ? '① 確認' : '確認'))).join('') +
+      (s.alts || []).map(r => box('mark pulse', r)).join('');
+    target.classList.remove('below');
+    if (both) target.dataset.label = '② ここをタップ'; else delete target.dataset.label;
+    updateTarget();
+    // カードは正解の場所に重ならない側に出す
+    const pos = plain ? 'mid' : s.card || (s.type === 'info' ? 'mid' : s.type === 'quiz' ? 'bottom' : s.type === 'scroll' ? 'top' : s.rect[1] + s.rect[3] / 2 > 640 ? 'top' : 'bottom');
+    // 画面の上に出す説明・クイズのカードは小さくして、サイトをなるべく隠さない
+    card.className = pos + (!plain && (s.type === 'info' || s.type === 'quiz') ? ' compact' : '');
+    // cardAt: 画面のこの高さ(590x1280の座標)に説明を出す。空いている場所に置くとき用
+    card.style.top = s.cardAt != null ? s.cardAt / 12.8 + '%' : '';
+    if (s.cardAt != null) card.classList.remove('top', 'bottom', 'mid');
+    // label: ステップごとに見出しを変えたいとき(例: 手順とは関係ない豆知識)
+    const label = s.label || { tap: 'タップしよう', scroll: 'スクロールしよう', quiz: 'クイズ', info: 'ポイント' }[s.type];
+    // banner: 作業のまとまりを大きく示す帯(例: Lot数の変更、買い/売りの段階)
+    const banner = s.banner ? `<div class="banner ${s.banner.tone || ''}">${s.banner.text}</div>` : '';
+    let html = banner + `<small>${no} / ${total}　${label}</small><b>${s.text}</b>` + (s.sub ? `<p>${s.sub}</p>` : '');
+    if (s.type === 'quiz') html += `<div class="btns">${s.choices.map((c, i) => `<button data-c="${i}">${c.label}</button>`).join('')}</div>`;
+    if (s.type === 'info') html += `<div class="btns">${s.video ? '<button class="video-btn" data-video>▶ 手順動画を見る</button>' : ''}<button data-next>${s.next || '次へ'}</button></div>`;
+    card.innerHTML = html;
+    if (!plain) avoidBoxes(s);
+    card.scrollTop = 0;
+    // 新しい画面の画像が表示できるまで、説明と枠を隠す(前の画面の上に枠が浮いて見えないように)
+    const layers = [card, target, $('marks')];
+    layers.forEach(e => e.style.visibility = 'hidden');
+    const reveal = () => { if (stage.steps[si] === s) layers.forEach(e => e.style.visibility = ''); };
+    if (img.hidden || !img.src || !img.decode) reveal();
+    else { img.decode().then(reveal, reveal); setTimeout(reveal, 700); } // decode が返らない環境でも必ず出す
+  }
+
+  // 説明の窓が、押す場所・確認の枠(上に付く札も含む)に重ならない位置を選ぶ。画面が小さくて入らないときは窓を小さくする
+  function avoidBoxes(s) {
+    const rects = [...(s.marks || []), ...(s.alts || []), ...(s.rect ? [s.rect] : [])];
+    if (!rects.length) return;
+    const labeled = Boolean(s.marks?.length); // 確認の枠には札が付くので、札の分も避ける
+    const H = shot.clientHeight, f = 1280 / H, m = 6 * f;
+    // 札は枠の上に出すのが基本。入らないときは札を枠の下に回す
+    for (const below of [false, true]) for (const compact of [card.classList.contains('compact'), true]) {
+      // 札の高さは画面上の大きさ(約32px)なので、画像の座標に直してから避ける
+      const L = (labeled ? 32 : 6) * f, g = 4 * f;
+      const boxes = rects.map(([, y, , h]) => below ? [y - g, y + h + L] : [y - L, y + h + g]);
+      const fits = (top, h) => boxes.every(([a, b]) => top + h <= a || top >= b);
+      card.classList.toggle('compact', compact);
+      const h = card.offsetHeight * f;
+      const cur = (card.offsetTop - (card.classList.contains('mid') ? card.offsetHeight / 2 : 0)) * f;
+      const tops = [cur, m, ...boxes.map(([, b]) => b), 1280 - m - h].filter(t => t >= m - 1 && t + h <= 1280 - m + 1);
+      const ok = tops.find(t => fits(t, h));
+      if (ok == null) continue;
+      if (ok !== cur) { card.classList.remove('top', 'bottom', 'mid'); card.style.top = ok / 12.8 + '%'; }
+      if (below) { target.classList.add('below'); $('marks').querySelectorAll('.mark').forEach(e => e.classList.add('below')); }
+      return;
+    }
+  }
+
+  // 表示画像・枠・タップ判定で同じコマ番号(1始まり)を使う。
+  const scrollFrame = s => Math.round(scrollP * (s.seq[1] - 1)) + 1;
+  function activeRect() {
+    const s = stage.steps[si];
+    if (s.type === 'tap') return s.rect;
+    if (s.type !== 'scroll' || !s.target || stage.steps[si + 1]?.type !== 'tap') return null;
+    const frame = scrollFrame(s);
+    if (frame < s.target.from || s.target.ys[frame - 1] == null) return null;
+    const [x, , w, h] = stage.steps[si + 1].rect;
+    return [x, s.target.ys[frame - 1], w, h];
+  }
+
+  function updateTarget() {
+    const rect = activeRect();
+    const below = target.classList.contains('below') && stage.steps[si].type === 'tap';
+    target.className = (rect && stage.guide && stage.steps[si].guide !== false ? 'hint' : '') + (rect && (rect[1] < 60 || below) ? ' below' : '');
+    // スクロールの場面: タップする場所が見えたら、スクロールを促す指マークは消す
+    if (stage.steps[si].type === 'scroll' && !busy) $('swipe').style.display = rect ? 'none' : 'block';
+    if (rect) {
+      const [x, y, w, h] = rect;
+      Object.assign(target.style, { left: x / 5.9 + '%', top: y / 12.8 + '%', width: w / 5.9 + '%', height: h / 12.8 + '%' });
+    }
+  }
+
+  // スクロールの場面: 録画のコマを、指を動かした分だけ進める(戻すこともできる)
+  function scrollBy(dy) {
+    const s = stage.steps[si];
+    scrollP = Math.min(1, Math.max(0, scrollP + dy / (shot.clientHeight * (s.len || 1.5))));
+    img.src = seqSrc(s, scrollFrame(s) - 1);
+    updateTarget();
+    if (scrollP >= 1) correct();
+  }
+
+  function miss(msg, x, y) {
+    stepMisses++;
+    navigator.vibrate?.(60);
+    shot.classList.remove('shake'); void shot.offsetWidth; shot.classList.add('shake');
+    toast.textContent = msg;
+    toast.style.left = Math.min(Math.max(x, 25), 75) + '%';
+    toast.style.top = Math.max(y, 12) + '%';
+    toast.classList.add('on');
+    clearTimeout(miss.t); miss.t = setTimeout(() => toast.classList.remove('on'), 1400);
+    // 2回間違えたら正解の場所を光らせる
+    if (stepMisses >= 2 && stage.steps[si].type === 'tap') target.classList.add('hint');
+  }
+
+  function correct() {
+    const s = stage.steps[si];
+    busy = true;
+    $('swipe').style.display = 'none';
+    const version = playVersion;
+    const later = (fn, ms) => setTimeout(() => { if (version === playVersion) fn(); }, ms);
+    toast.classList.remove('on');
+    const go = () => s.warn ? openModal(s.warn, s.warnMark) : advance();
+    if (s.type === 'tap') {
+      target.className = 'hit';
+      later(() => { if (s.after) { img.src = src(s.after); target.className = ''; } }, 350);
+      later(go, s.after ? 1200 : 550);
+    } else if (s.type === 'scroll') {
+      later(go, 350);
+    } else go();
+  }
+
+  function advance() {
+    $('modal').classList.remove('on');
+    si++;
+    si < stage.steps.length ? step() : clear();
+  }
+
+  function clear() {
+    saveClear(stage.id);
+    // おさらい: 重要ポイント(warn)と、まとめ用の文(review)を順に並べる
+    const warns = stage.steps.flatMap(s => [s.review, s.warn].filter(Boolean));
+    $('review').innerHTML = warns.map(w => `<li>${w}</li>`).join('');
+    $('reviewTitle').style.display = warns.length ? '' : 'none';
+    $('next').style.display = nextStage() >= 0 ? '' : 'none';
+    show('clear');
+  }
+
+  // 押す場所の判定を少しゆるくする: まわりに12px、狭い場所は幅88・高さ56まで広げる(590x1280の座標。幅375の画面で約56x36)。
+  // カレンダーのように項目が詰まった所でも、となりの項目の真ん中までは届かない大きさ。枠の見た目は元の大きさのまま
+  const SLACK = 12, MIN_W = 88, MIN_H = 56;
+  const loose = ([x, y, w, h]) => {
+    const W = Math.max(w + SLACK * 2, MIN_W), H = Math.max(h + SLACK * 2, MIN_H);
+    return [x + w / 2 - W / 2, y + h / 2 - H / 2, W, H];
+  };
+
+  // スクショへの操作: 動かさずに離せばタップ、上に動かせばスワイプ
+  let down = null;
+  shot.addEventListener('pointerdown', e => {
+    // スクロールの場面は、説明カードの上から指を置いてもスクロールできるようにする
+    if (busy || (e.target.closest('#card') && stage.steps[si].type !== 'scroll')) return;
+    down = { x: e.clientX, y: e.clientY, lastY: e.clientY, moved: 0 };
+    shot.setPointerCapture?.(e.pointerId);
+  });
+  shot.addEventListener('pointermove', e => {
+    if (!down || busy || stage.steps[si].type !== 'scroll') return;
+    down.moved += Math.abs(e.clientY - down.lastY);
+    scrollBy(down.lastY - e.clientY);
+    down.lastY = e.clientY;
+  });
+  shot.addEventListener('pointercancel', () => (down = null));
+  shot.addEventListener('pointerup', e => {
+    if (!down || busy) return (down = null);
+    const dx = e.clientX - down.x, dy = e.clientY - down.y, moved = down.moved;
+    down = null;
+    const s = stage.steps[si], r = shot.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width * 100, py = (e.clientY - r.top) / r.height * 100;
+    const x = px * 5.9, y = py * 12.8;
+    const inside = ([rx, ry, rw, rh]) => x >= rx && x <= rx + rw && y >= ry && y <= ry + rh;
+    const near = r => inside(loose(r));
+    if (s.type === 'scroll') {
+      if (moved >= 10 || Math.abs(dx) > 14 || Math.abs(dy) > 14) return;
+      const rect = activeRect();
+      if (rect && near(rect)) {
+        // 今の画像と枠を保ったまま、直後のtapの正解処理(after・warn)へ進む。
+        si++;
+        return correct();
+      }
+      return miss('タップではなく、上にスワイプしてスクロール', px, py);
+    }
+    if (s.type !== 'tap' || Math.abs(dx) > 14 || Math.abs(dy) > 14) return;
+    const goals = [s.rect, ...(s.alts || [])]; // alts: ほかにも正解の場所がある
+    // zone: 枠は出さず、この範囲ならどこを押しても正解(例: カレンダーの日付)
+    if (goals.some(inside) || (s.zone && inside(s.zone))) return correct();
+    const trap = (s.traps || []).find(t => inside(t.rect));
+    // alert付きの間違いは、トーストではなく重要ポイントとして大きく見せる(進まない)
+    if (trap?.alert) { alerting = true; openModal(trap.alert, trap.mark || trap.rect); return; }
+    // 間違いの場所でなければ、押す場所の少し外でも正解にする
+    if (!trap && goals.some(near)) return correct();
+    miss(trap ? trap.msg : 'そこじゃないよ', px, py);
+  });
+  shot.addEventListener('wheel', e => { if (!busy && stage.steps[si].type === 'scroll') scrollBy(e.deltaY); });
+
+  card.addEventListener('click', e => {
+    if (busy) return;
+    const s = stage.steps[si];
+    if (e.target.dataset.video !== undefined) return openVideo(s.video);
+    if (e.target.dataset.next !== undefined) return correct();
+    if (e.target.dataset.c === undefined) return;
+    const c = s.choices[e.target.dataset.c];
+    if (c.ok) return correct();
+    e.target.classList.add('ng');
+    miss(c.msg, 50, 40);
+  });
+
+  $('stages').addEventListener('click', e => { const b = e.target.closest('.stage'); if (b) start(Number(b.dataset.i)); });
+  $('modalOk').onclick = () => { closeMark(); if (alerting) { alerting = false; $('modal').classList.remove('on'); } else advance(); };
+  // 重要ポイントを出すとき、どこの話かを画面上の赤枠で示す。枠が隠れないよう、ポップアップは反対側に寄せる
+  function openModal(text, mark) {
+    $('modalText').textContent = text;
+    const m = $('modal');
+    m.classList.remove('at-top', 'at-bottom', 'marked');
+    closeMark();
+    if (mark) {
+      const [x, y, w, h] = mark;
+      $('warnMark').style.cssText = `display:block;left:${x / 5.9}%;top:${y / 12.8}%;width:${w / 5.9}%;height:${h / 12.8}%`;
+      m.classList.add(y + h / 2 < 640 ? 'at-bottom' : 'at-top', 'marked');
+    }
+    m.classList.add('on');
+    if (mark) placeModal();
+  }
+  function placeModal() {
+    const m = $('modal'), box = m.firstElementChild;
+    if (!box) return;
+    const r = $('warnMark').getBoundingClientRect();
+    const gap = 14, above = r.top - gap * 2, below = innerHeight - r.bottom - gap * 2;
+    m.style.alignItems = 'flex-start';
+    box.style.maxHeight = Math.max(above, below) + 'px';
+    const h = box.getBoundingClientRect().height;
+    box.style.marginTop = (below >= above || below >= h ? r.bottom + gap : Math.max(gap, r.top - gap - h)) + 'px';
+  }
+  function closeMark() {
+    $('warnMark').style.display = 'none';
+    const m = $('modal'), box = m.firstElementChild;
+    m.style.alignItems = '';
+    if (box) { box.style.marginTop = ''; box.style.maxHeight = ''; }
+  }
+  // 手順動画: 注釈入りの動画をアプリ内で再生する
+  function openVideo(name) {
+    const v = $('video');
+    v.src = `video/${name}.mp4`;
+    $('player').classList.add('on');
+    v.play?.().catch(() => {});
+  }
+  $('playerClose').onclick = () => {
+    const v = $('video');
+    v.pause?.();
+    v.removeAttribute('src');
+    v.load?.(); // 読み込みも止める
+    $('player').classList.remove('on');
+  };
+  $('quit').onclick = home;
+  $('back').onclick = home;
+  $('again').onclick = () => start(STAGES.indexOf(stage.base || stage));
+  // 次のステージ: 自分のスマホ向けでない準備編は飛ばす
+  function nextStage() { const list = visible(); const k = list.indexOf(stage.base || stage); return k >= 0 && k < list.length - 1 ? STAGES.indexOf(list[k + 1]) : -1; }
+  $('next').onclick = () => start(nextStage());
+  document.querySelectorAll('#device button').forEach(b => b.onclick = () => { try { localStorage.setItem(DEVICE, b.dataset.d); } catch {} home(); });
+  // ?only=safari,passbook のように指定すると、そのステージだけを出す(ステージ単位で共有するとき用)
+  const only = new URLSearchParams(location.search).get('only');
+  if (only) {
+    const ids = only.split(',');
+    const picked = STAGES.filter(s => ids.includes(s.id));
+    if (picked.length) STAGES.splice(0, STAGES.length, ...picked);
+  }
+  home();
+</script>
+</body>
+</html>

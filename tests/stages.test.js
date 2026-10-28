@@ -82,6 +82,22 @@ test('android overrides use existing images and valid targets', () => {
     if (a.choices) assert.equal(a.choices.filter(c => c.ok === true).length, 1, label);
   });
 });
+test('Safari bars cut on Android never hide a tap target', () => {
+  const bars = vm.runInNewContext(fs.readFileSync(path.join(root, 'safari-bars.js'), 'utf8') + '\nSAFARI_BARS');
+  for (const name of Object.keys(bars)) assert.ok(fs.existsSync(path.join(root, 'img', name + '.jpg')), name);
+  const visible = (label, name, r) => {
+    const b = bars[name];
+    if (b && r) assert.ok(r[1] >= b[0] && r[1] + r[3] <= b[1], `${label} ${name} ${r} under ${b}`);
+  };
+  for (const st of stages.filter(s => s.device !== 'iphone')) st.steps.forEach((s0, i) => {
+    const s = { ...s0, ...s0.android }, label = st.id + ':' + (i + 1);
+    for (const name of [s.img, s.after].filter(Boolean))
+      for (const r of [s.rect, ...(s.alts || []), ...(s.marks || []), ...(s.traps || []).map(t => t.rect), s.warnMark]) visible(label, name, r);
+    if (s.seq && s.target) s.target.ys.forEach((y, k) => {
+      if (y != null) visible(label, `seq/${s.seq[0]}-${String(k + 1).padStart(2, '0')}`, [0, y, 1, st.steps[i + 1].rect[3]]);
+    });
+  });
+});
 test('FX banners have no colored squares', () => {
   assert.doesNotMatch(source, /🟥|🟦/);
 });

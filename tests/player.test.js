@@ -32,6 +32,7 @@ const ctx = vm.createContext({
   setTimeout: (fn, ms) => { timers.set(++timerId, { fn, ms }); return timerId; }, clearTimeout: id => timers.delete(id),
 });
 vm.runInContext(fs.readFileSync(path.join(root, 'stages.js'), 'utf8'), ctx);
+vm.runInContext(fs.readFileSync(path.join(root, 'safari-bars.js'), 'utf8'), ctx);
 // 1つ目の<script>は stages.js の読み込み用。本体は一番長い<script>
 vm.runInContext([...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).sort((x, y) => y.length - x.length)[0], ctx);
 const run = code => vm.runInContext(code, ctx);
@@ -241,8 +242,20 @@ run(`start(${indexOf('unext-flow')})`);
 // 「もう一度」「次のステージへ」は元のステージで探す
 run('clear()'); assert.equal(run('STAGES[nextStage()].id'), 'unext-pending');
 node('again').onclick(); assert.equal(run('stage.id'), 'unext-flow');
+// Safariの画面は、上下のバーを切り取って見せる(Chromeの画面・スクロールのコマも)
+run(`start(${indexOf('passbook')})`);
+assert.equal(node('img').src, 'img/hapitas-top.jpg');
+assert.equal(node('img').style.clipPath, `inset(${140 / 12.8}% 0 ${110 / 12.8}% 0)`);
+assert.equal(node('shot').style.background, 'transparent');
+run(`start(${indexOf('browser-flow')}); si = stage.steps.findIndex(s => s.img === "an-chrome"); step()`);
+assert.equal(node('img').style.clipPath, ''); assert.equal(node('shot').style.background, '');
+run(`start(${indexOf('inquiry-hapitas')}); si = stage.steps.findIndex(s => s.seq?.[0] === "ihexp"); step(); scrollBy(shot.clientHeight * 0.5)`);
+assert.match(node('img').src, /seq\/ihexp-/);
+assert.equal(node('img').style.clipPath, `inset(${140 / 12.8}% 0 0% 0)`); // スクロールの途中はツールバーが消えている
 // iPhoneは今までどおりSafari
 saved.set('v3-device', 'iphone');
+run(`start(${indexOf('passbook')})`);
+assert.equal(node('img').style.clipPath, ''); assert.equal(node('shot').style.background, '');
 run(`start(${indexOf('unext-flow')})`);
 assert.equal(run('stage.steps[3].img'), 'hapitas-home');
 assert.equal(run('stage.steps[4].img'), 'hr-safari');

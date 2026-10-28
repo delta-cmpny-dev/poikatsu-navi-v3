@@ -211,7 +211,7 @@
 <div id="modal"><div><em>⚠️ 重要ポイント</em><p id="modalText"></p><button id="modalOk">わかった</button></div></div>
 
 <!-- ステージの中身は更新が多いので、毎回最新を読む(スマホのキャッシュ対策) -->
-<script>document.write('<script src="stages.js?t=' + Date.now() + '"><\/script>');</script>
+<script>document.write('<script src="stages.js?t=' + Date.now() + '"><\/script><script src="safari-bars.js?t=' + Date.now() + '"><\/script>');</script>
 <script>
   const $ = id => document.getElementById(id);
   const shot = $('shot'), img = $('img'), scene = $('scene'), target = $('target'), card = $('card'), toast = $('toast');
@@ -219,6 +219,14 @@
   const seqSrc = (s, k) => `img/seq/${s.seq[0]}-${String(k + 1).padStart(2, '0')}.jpg`;
   let stage, si, stepMisses, busy, scrollP;
   let playVersion = 0;
+  // スクショを替える。Androidを選んだ人には、iPhoneのSafariの上下のバー(時刻の行・アドレスバー・ツールバー)を
+  // 切り取って見せる。切り取る範囲は safari-bars.js(tools/find_safari_bars.py で作る)
+  function setImg(path) {
+    img.src = path;
+    const bars = device() === 'android' && typeof SAFARI_BARS !== 'undefined' && SAFARI_BARS[path.replace(/^img\/|\.jpg$/g, '')];
+    img.style.clipPath = bars ? `inset(${bars[0] / 12.8}% 0 ${(1280 - bars[1]) / 12.8}% 0)` : '';
+    shot.style.background = bars ? 'transparent' : '';
+  }
   const resizeScene = () => { scene.style.transform = `scale(${shot.getBoundingClientRect().width / 590})`; };
   new ResizeObserver(resizeScene).observe(shot);
 
@@ -301,8 +309,8 @@
     $('prog').style.width = (no - 1) / total * 100 + '%';
     const plain = !s.img && !s.html && !s.seq;
     img.hidden = Boolean(s.html) || plain;
-    if (img.hidden) img.removeAttribute('src');
-    else img.src = s.seq ? seqSrc(s, 0) : src(s.img);
+    if (img.hidden) { img.removeAttribute('src'); img.style.clipPath = shot.style.background = ''; }
+    else setImg(s.seq ? seqSrc(s, 0) : src(s.img));
     scene.hidden = !s.html;
     scene.innerHTML = s.html || '';
     resizeScene();
@@ -400,7 +408,7 @@
   function scrollBy(dy) {
     const s = stage.steps[si];
     scrollP = Math.min(1, Math.max(0, scrollP + dy / (shot.clientHeight * (s.len || 1.5))));
-    img.src = seqSrc(s, scrollFrame(s) - 1);
+    setImg(seqSrc(s, scrollFrame(s) - 1));
     updateTarget();
     if (scrollP >= 1) correct();
   }
@@ -428,7 +436,7 @@
     const go = () => s.warn ? openModal(s.warn, s.warnMark) : advance();
     if (s.type === 'tap') {
       target.className = 'hit';
-      later(() => { if (s.after) { img.src = src(s.after); target.className = ''; } }, 350);
+      later(() => { if (s.after) { setImg(src(s.after)); target.className = ''; } }, 350);
       later(go, s.after ? 1200 : 550);
     } else if (s.type === 'scroll') {
       later(go, 350);
