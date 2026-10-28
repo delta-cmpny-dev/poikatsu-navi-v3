@@ -231,6 +231,14 @@
   const DEVICE = 'v3-device';
   const device = () => { try { const d = localStorage.getItem(DEVICE); if (d) return d; } catch {} return /android/i.test(navigator.userAgent || '') ? 'android' : 'iphone'; };
   const visible = () => STAGES.filter(s => !s.device || s.device === device());
+  // Androidを選んだ人には、準備編のあとのステージも「Safari」を「Chrome」と書いて見せる(ブラウザの中の画面はiPhoneのまま)。
+  // 言い方や画像を変えたいステップは、そのステップの android に書く。base は元のステージ(次のステージ・もう一度で使う)
+  const swapBrowser = v => typeof v === 'string' ? v.replace(/Safari/g, 'Chrome')
+    : Array.isArray(v) ? v.map(swapBrowser)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, swapBrowser(x)])) : v;
+  const forDevice = st => device() === 'android'
+    ? { ...swapBrowser({ ...st, steps: st.steps.map(s => ({ ...s, ...s.android })) }), base: st }
+    : { ...st, base: st };
   // まとまりは、全ステージの並び順で決める(?only で絞り込んでも変わらないよう、先に付けておく)
   STAGES.forEach((s, i) => { s.area = AREAS.reduce((a, r, k) => (i >= STAGES.findIndex(t => t.id === r.start) ? k : a), 0); });
 
@@ -254,7 +262,8 @@
         head = `<div class="area"><em>${"ⅠⅡⅢⅣⅤⅥ"[s.area]}</em><div><b>${a.name}</b><br><small>${a.desc}</small></div>` +
           `<span class="${got === mates.length ? 'all' : ''}">${got}/${mates.length}</span></div>`;
       }
-      return head + `<button class="stage" data-i="${STAGES.indexOf(s)}"><span class="stage-number">${i + 1}</span><b>${s.title}</b><span>${s.lead}</span>` +
+      const { title, lead } = forDevice(s);
+      return head + `<button class="stage" data-i="${STAGES.indexOf(s)}"><span class="stage-number">${i + 1}</span><b>${title}</b><span>${lead}</span>` +
         (done ? `<i>クリア済み ✓</i>` : `<i class="none">まだクリアしていません</i>`) + `</button>`;
     }).join('');
     const n = list.filter(s => isCleared(s.id)).length;
@@ -265,7 +274,7 @@
 
   function start(i) {
     playVersion++;
-    stage = STAGES[i]; si = 0;
+    stage = forDevice(STAGES[i]); si = 0;
     stage.steps.forEach(s => {
       if (s.img && !s.html) new Image().src = src(s.img);
       if (s.after) new Image().src = src(s.after);
@@ -442,6 +451,14 @@
     show('clear');
   }
 
+  // 押す場所の判定を少しゆるくする: まわりに12px、狭い場所は幅88・高さ56まで広げる(590x1280の座標。幅375の画面で約56x36)。
+  // カレンダーのように項目が詰まった所でも、となりの項目の真ん中までは届かない大きさ。枠の見た目は元の大きさのまま
+  const SLACK = 12, MIN_W = 88, MIN_H = 56;
+  const loose = ([x, y, w, h]) => {
+    const W = Math.max(w + SLACK * 2, MIN_W), H = Math.max(h + SLACK * 2, MIN_H);
+    return [x + w / 2 - W / 2, y + h / 2 - H / 2, W, H];
+  };
+
   // スクショへの操作: 動かさずに離せばタップ、上に動かせばスワイプ
   let down = null;
   shot.addEventListener('pointerdown', e => {
@@ -465,10 +482,11 @@
     const px = (e.clientX - r.left) / r.width * 100, py = (e.clientY - r.top) / r.height * 100;
     const x = px * 5.9, y = py * 12.8;
     const inside = ([rx, ry, rw, rh]) => x >= rx && x <= rx + rw && y >= ry && y <= ry + rh;
+    const near = r => inside(loose(r));
     if (s.type === 'scroll') {
       if (moved >= 10 || Math.abs(dx) > 14 || Math.abs(dy) > 14) return;
       const rect = activeRect();
-      if (rect && inside(rect)) {
+      if (rect && near(rect)) {
         // 今の画像と枠を保ったまま、直後のtapの正解処理(after・warn)へ進む。
         si++;
         return correct();
@@ -476,10 +494,14 @@
       return miss('タップではなく、上にスワイプしてスクロール', px, py);
     }
     if (s.type !== 'tap' || Math.abs(dx) > 14 || Math.abs(dy) > 14) return;
-    if (inside(s.rect) || (s.alts || []).some(inside)) return correct(); // alts: ほかにも正解の場所がある
+    const goals = [s.rect, ...(s.alts || [])]; // alts: ほかにも正解の場所がある
+    // zone: 枠は出さず、この範囲ならどこを押しても正解(例: カレンダーの日付)
+    if (goals.some(inside) || (s.zone && inside(s.zone))) return correct();
     const trap = (s.traps || []).find(t => inside(t.rect));
     // alert付きの間違いは、トーストではなく重要ポイントとして大きく見せる(進まない)
     if (trap?.alert) { alerting = true; openModal(trap.alert, trap.mark || trap.rect); return; }
+    // 間違いの場所でなければ、押す場所の少し外でも正解にする
+    if (!trap && goals.some(near)) return correct();
     miss(trap ? trap.msg : 'そこじゃないよ', px, py);
   });
   shot.addEventListener('wheel', e => { if (!busy && stage.steps[si].type === 'scroll') scrollBy(e.deltaY); });
@@ -544,9 +566,9 @@
   };
   $('quit').onclick = home;
   $('back').onclick = home;
-  $('again').onclick = () => start(STAGES.indexOf(stage));
+  $('again').onclick = () => start(STAGES.indexOf(stage.base || stage));
   // 次のステージ: 自分のスマホ向けでない準備編は飛ばす
-  function nextStage() { const list = visible(); const k = list.indexOf(stage); return k >= 0 && k < list.length - 1 ? STAGES.indexOf(list[k + 1]) : -1; }
+  function nextStage() { const list = visible(); const k = list.indexOf(stage.base || stage); return k >= 0 && k < list.length - 1 ? STAGES.indexOf(list[k + 1]) : -1; }
   $('next').onclick = () => start(nextStage());
   document.querySelectorAll('#device button').forEach(b => b.onclick = () => { try { localStorage.setItem(DEVICE, b.dataset.d); } catch {} home(); });
   // ?only=safari,passbook のように指定すると、そのステージだけを出す(ステージ単位で共有するとき用)

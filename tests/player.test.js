@@ -209,3 +209,65 @@ assert.ok(node('home').classList.contains('on'));
 run('start(0); si = 1; step()'); tap(run('stage.steps[si].rect'));
 node('quit').onclick(); run('start(0)'); flush(); assert.equal(run('si'), 0);
 console.log('PASS display modes, links, warnings, existing scrolls, and quit/restart');
+
+// Androidを選ぶと、準備編のあとのステージも「Safari」ではなく「Chrome」で案内する(ブラウザの中の画面はiPhoneのまま)
+ctx.localStorage.getItem = k => saved.get(k); ctx.localStorage.setItem = (k, v) => saved.set(k, String(v));
+saved.clear(); flush();
+const indexOf = id => run(`STAGES.findIndex(s => s.id === ${JSON.stringify(id)})`);
+saved.set('v3-device', 'android'); run('home()');
+assert.doesNotMatch(node('stages').innerHTML, /Safari/);
+assert.match(node('stages').innerHTML, /スクールの案内のURLをChromeで開くまで/);
+for (const id of JSON.parse(run('JSON.stringify(visible().map(s => s.id))'))) {
+  run(`start(${indexOf(id)})`);
+  assert.doesNotMatch(run("JSON.stringify({ ...stage, base: null })"), /Safari/, id);
+}
+// 入口はAndroidのホーム画面。Chromeで進み、ポイントサイトのアプリは重要ポイントを出して進まない
+run(`start(${indexOf('unext-flow')})`);
+const entry = run('stage.steps.findIndex(s => s.img === "an-home-apps")');
+assert.ok(entry >= 0);
+run(`si = ${entry}; step()`);
+assert.equal(node('img').src, 'img/an-home-apps.jpg');
+assert.match(node('card').innerHTML, /Chromeを開こう/);
+tap([324, 528, 92, 124]);
+assert.ok(node('modal').classList.contains('on'));
+assert.match(node('modalText').textContent, /Chromeから開く癖/);
+assert.equal(run('si'), entry);
+node('modalOk').onclick(); tap([180, 531, 86, 84]); assert.equal(run('si'), entry); flush(); assert.equal(run('si'), entry + 1);
+// ブラウザを開いた最初の画面(検索欄)もChromeの画面。ブラウザ経由のステージも同じ
+assert.equal(node('img').src, 'img/an-chrome.jpg');
+run(`start(${indexOf('browser-flow')})`);
+assert.ok(run('stage.steps.some(s => s.img === "an-chrome" && s.text === "Chromeを開いて、検索欄をタップしよう")'));
+run(`start(${indexOf('unext-flow')})`);
+// 「もう一度」「次のステージへ」は元のステージで探す
+run('clear()'); assert.equal(run('STAGES[nextStage()].id'), 'unext-pending');
+node('again').onclick(); assert.equal(run('stage.id'), 'unext-flow');
+// iPhoneは今までどおりSafari
+saved.set('v3-device', 'iphone');
+run(`start(${indexOf('unext-flow')})`);
+assert.equal(run('stage.steps[3].img'), 'hapitas-home');
+assert.equal(run('stage.steps[4].img'), 'hr-safari');
+assert.match(run('JSON.stringify(stage)'), /Safariを開こう/);
+console.log('PASS android shows Chrome instead of Safari');
+
+// 狭い押す場所は少し外れても正解。間違いの場所(traps)は今までどおり優先する
+run(`start(${indexOf('inquiry-moppy')})`);
+const cal = run('stage.steps.findIndex(s => s.img === "im-cal")');
+run(`si = ${cal}; step()`);
+const [cx, cy, cw, ch] = run('stage.steps[si].rect');
+// カレンダーは、どの日付を押しても進む(19日・11日・25日・31日・年月の行)
+const mid = [cx + cw / 2, cy + ch / 2];
+for (const [x, y] of [[mid[0] + 51.5, mid[1]], [mid[0], mid[1] - 33], [mid[0], mid[1] + 33], [400, 673], [240, 462]]) {
+  run(`si = ${cal}; step()`);
+  tap([x, y, 0, 0]); assert.equal(run('si'), cal); flush(); assert.equal(run('si'), cal + 1, `${x},${y}`);
+}
+// カレンダーの外(キーボード)を押したときは進まない
+run(`si = ${cal}; step()`);
+tap([300, 950, 0, 0]); assert.equal(run('si'), cal); assert.equal(node('toast').textContent, 'そこじゃないよ');
+flush();
+run('stage = { id: "t", steps: [{ type: "tap", img: "im-cal", text: "t", rect: [100, 100, 50, 28], traps: [{ rect: [155, 100, 50, 28], msg: "となりの日" }] }] }; si = 0; step()');
+tap([160, 105, 0, 0]); assert.equal(run('si'), 0); assert.equal(node('toast').textContent, 'となりの日');
+flush(); run('si = 0; step()');
+tap([60, 114, 0, 0]); assert.equal(node('toast').textContent, 'そこじゃないよ');
+flush(); run('si = 0; step()');
+tap([85, 95, 0, 0]); flush(); assert.equal(run('si'), 1);
+console.log('PASS small tap targets accept near taps but keep traps');

@@ -72,4 +72,17 @@ for (const stage of stages) test(stage.id + ' data and assets', () => {
     if (s.html) { assert.equal(typeof s.html, 'string'); assert.ok(s.html.length); }
   }
 });
+test('android overrides use existing images and valid targets', () => {
+  for (const st of stages) st.steps.forEach((s, i) => {
+    if (!s.android) return;
+    const a = { ...s, ...s.android }, label = st.id + ':' + (i + 1) + ' android';
+    if (a.rect) rect(a.rect, label);
+    for (const t of a.traps || []) { rect(t.rect, label); assert.ok(!overlap(a.rect, t.rect), label + ' overlapping trap'); }
+    if (a.img) assert.ok(fs.existsSync(path.join(root, 'img', a.img + '.jpg')), label + ' ' + a.img);
+    if (a.choices) assert.equal(a.choices.filter(c => c.ok === true).length, 1, label);
+  });
+});
+test('FX banners have no colored squares', () => {
+  assert.doesNotMatch(source, /🟥|🟦/);
+});
 console.log(checks + ' data checks passed');
