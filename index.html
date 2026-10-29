@@ -93,14 +93,13 @@
   .mark.pulse { animation: pulse 1s ease-in-out infinite; }
   /* 確認するだけの枠: 青い点線で、押す場所(オレンジ)と見分ける */
   .mark.check { outline: 3px dashed #1f8bff; outline-offset: 3px; }
-  #target[data-label]::after, .mark[data-label]::after {
+  .mark[data-label]::after {
     content: attr(data-label); position: absolute; left: -4px; bottom: calc(100% + 6px); white-space: nowrap;
     font-size: 12px; font-weight: 900; color: #fff; background: var(--accent); padding: 2px 7px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0, 0, 0, .4);
   }
   .mark.check[data-label]::after { background: #1f8bff; }
   .mark.bare { outline: none; }
-  #target.hit::after { content: none; }
-  #target.below[data-label]::after, .mark.below[data-label]::after { bottom: auto; top: calc(100% + 6px); }
+  .mark.below[data-label]::after { bottom: auto; top: calc(100% + 6px); }
   #target.hit { display: block; outline-color: var(--ok); background: rgba(23, 166, 115, .25); }
   @keyframes pulse { 50% { box-shadow: 0 0 0 12px rgba(255, 138, 0, .3) } }
   /* 上にスワイプの案内 */
@@ -321,16 +320,8 @@
     clearTimeout(miss.t);
     toast.classList.remove('on');
     $('swipe').style.display = s.type === 'scroll' ? 'block' : 'none';
-    // 確認用の枠(marks)は静止、ほかにも正解の場所(alts)は押す場所と同じく光らせる
-    const box = (cls, [x, y, w, h], label = '') => `<div class="${cls}${y < 60 ? ' below' : ''}"${label ? ` data-label="${label}"` : ''} style="left:${x / 5.9}%;top:${y / 12.8}%;width:${w / 5.9}%;height:${h / 12.8}%"></div>`;
-    // 確認するだけの枠(青い点線)と押す場所(オレンジ)を、見た目と札で分ける。両方あるときは「①確認 → ②タップ」の順を示す
-    const both = s.type === 'tap' && s.marks?.length;
-    // 確認の枠はすべて青い点線と「確認」の札。押す場所と同じ画面にあるときは「①確認 → ②タップ」の順を示す
-    const bare = s.markStyle === 'bare' ? ' bare below' : '';
-    $('marks').innerHTML = (s.marks || []).map(r => box('mark check' + bare, r, s.markLabel || (both ? '① 確認' : '確認'))).join('') +
-      (s.alts || []).map(r => box('mark pulse', r)).join('');
+    renderMarks(s, false);
     target.classList.remove('below');
-    if (both) target.dataset.label = '② ここをタップ'; else delete target.dataset.label;
     updateTarget();
     // カードは正解の場所に重ならない側に出す
     const pos = plain ? 'mid' : s.card || (s.type === 'info' ? 'mid' : s.type === 'quiz' ? 'bottom' : s.type === 'scroll' ? 'top' : s.rect[1] + s.rect[3] / 2 > 640 ? 'top' : 'bottom');
@@ -357,6 +348,20 @@
     else { img.decode().then(reveal, reveal); setTimeout(reveal, 700); } // decode が返らない環境でも必ず出す
   }
 
+  // 確認するだけの枠(marks)は青い点線と「確認」の札、ほかにも正解の場所(alts)は押す場所と同じく光らせる。
+  // 札は枠の上(below のときは下)に出す。上下に並んだ枠では、となりの枠の文字に重なる札は出さない(となりの枠の札で足りる)
+  function renderMarks(s, below) {
+    const box = (cls, [x, y, w, h], label = '') => `<div class="${cls}${y < 60 ? ' below' : ''}"${label ? ` data-label="${label}"` : ''} style="left:${x / 5.9}%;top:${y / 12.8}%;width:${w / 5.9}%;height:${h / 12.8}%"></div>`;
+    const bare = s.markStyle === 'bare', marks = s.marks || [];
+    const L = 40 * 1280 / shot.clientHeight; // 札の高さ(画面で約32px)と余白を、画像の座標に直したもの
+    const hits = ([x, y, w, h], [x2, y2, w2, h2]) => x < x2 + w2 && x2 < x + w && y < y2 + h2 && y2 < y + h;
+    $('marks').innerHTML = marks.map(([x, y, w, h], i) => {
+      const down = below || bare || y < 60;
+      const covered = marks.some((m, j) => j !== i && hits([x, down ? y + h : y - L, w, L], m));
+      return box('mark check' + (bare ? ' bare' : '') + (down ? ' below' : ''), [x, y, w, h], covered ? '' : s.markLabel || '確認');
+    }).join('') + (s.alts || []).map(r => box('mark pulse', r)).join('');
+  }
+
   // 説明の窓が、押す場所・確認の枠(上に付く札も含む)に重ならない位置を選ぶ。画面が小さくて入らないときは窓を小さくする
   function avoidBoxes(s) {
     const rects = [...(s.marks || []), ...(s.alts || []), ...(s.rect ? [s.rect] : [])];
@@ -376,7 +381,7 @@
       const ok = tops.find(t => fits(t, h));
       if (ok == null) continue;
       if (ok !== cur) { card.classList.remove('top', 'bottom', 'mid'); card.style.top = ok / 12.8 + '%'; }
-      if (below) { target.classList.add('below'); $('marks').querySelectorAll('.mark').forEach(e => e.classList.add('below')); }
+      if (below) { target.classList.add('below'); renderMarks(s, true); }
       return;
     }
   }
@@ -398,6 +403,14 @@
     if (s.type !== 'scroll' || !s.goal) return null;
     const y = s.goal.ys[scrollFrame(s) - 1];
     return y == null ? null : [s.goal.x, y, s.goal.w, s.goal.h];
+  }
+  // ゴールの枠が全部見えたら(説明の窓に隠れていなければ)、最後までスクロールしなくても次の画面へ進む
+  function goalInView() {
+    const g = goalRect();
+    if (!g) return false;
+    const r = shot.getBoundingClientRect(); // 窓の位置は見た目で測る(真ん中に出す mid は transform でずらしているため)
+    const cardBottom = (card.getBoundingClientRect().bottom - r.top) * 1280 / r.height || 0;
+    return g[1] >= cardBottom;
   }
 
   function updateTarget() {
@@ -426,7 +439,7 @@
     scrollP = Math.min(1, Math.max(0, scrollP + dy / (shot.clientHeight * (s.len || 1.5))));
     setImg(seqSrc(s, scrollFrame(s) - 1));
     updateTarget();
-    if (scrollP >= 1) correct();
+    if (!busy && (scrollP >= 1 || goalInView())) correct();
   }
 
   function miss(msg, x, y) {

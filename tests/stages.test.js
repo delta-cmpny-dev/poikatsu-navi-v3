@@ -121,6 +121,14 @@ test('no info step repeats the instruction of the next tap on the same screen', 
   });
   assert.doesNotMatch(source, /text: '各項目を入力しよう'/);
 });
+// 本人の直し(10/29)「一つの画面に確認とタップの2手順入ってるから、それぞれ分けて作って」
+test('one screen asks for one thing: a tap step has no check boxes', () => {
+  for (const st of stages) st.steps.forEach((s0, i) => {
+    const s = { ...s0, ...s0.android };
+    if (s.type === 'tap') assert.ok(!s.marks?.length && !s.markLabel, st.id + ':' + (i + 1) + ' ' + s.text);
+  });
+  assert.doesNotMatch(fs.readFileSync(path.join(root, 'index.html'), 'utf8'), /② ここをタップ/);
+});
 test('FX banners have no colored squares', () => {
   assert.doesNotMatch(source, /🟥|🟦/);
 });

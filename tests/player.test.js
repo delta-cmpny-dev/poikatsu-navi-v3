@@ -257,8 +257,8 @@ saved.set('v3-device', 'iphone');
 run(`start(${indexOf('passbook')})`);
 assert.equal(node('img').style.clipPath, ''); assert.equal(node('shot').style.background, '');
 run(`start(${indexOf('unext-flow')})`);
-assert.equal(run('stage.steps[3].img'), 'hapitas-home');
-assert.equal(run('stage.steps[4].img'), 'hr-safari');
+const home = run('stage.steps.findIndex(s => s.img === "hapitas-home")');
+assert.ok(home > 0); assert.equal(run(`stage.steps[${home + 1}].img`), 'hr-safari');
 assert.match(run('JSON.stringify(stage)'), /Safariを開こう/);
 console.log('PASS android shows Chrome instead of Safari');
 
@@ -285,33 +285,62 @@ flush(); run('si = 0; step()');
 tap([85, 95, 0, 0]); flush(); assert.equal(run('si'), 1);
 console.log('PASS small tap targets accept near taps but keep traps');
 
-// スクロールの場面は、探す項目が見えたら「ゴール」の枠を出す。枠を押してもスクロールを終えられる(ニケさんの直し 10/28)
+// スクロールの場面は、探す項目が見えたら「ゴール」の枠を出す(ニケさんの直し 10/28)。
+// 枠が全部見えたら、最後までスクロールしなくても次の画面へ進む(本人の直し 10/29)
 saved.set('v3-device', 'android');
 run(`start(${indexOf('android')})`);
 const js = run('stage.steps.findIndex(s => s.seq?.[0] === "ansite")');
 run(`si = ${js}; step()`);
 assert.match(run('stage.steps[si].text'), /「JavaScript」を探そう/);
 assert.equal(node('goal').hidden, true);
-frame(20); assert.equal(node('goal').hidden, true);
+frame(20); assert.equal(node('goal').hidden, true); assert.equal(run('busy'), false);
 frame(21); assert.equal(node('goal').hidden, false);
 assert.equal(node('goal').dataset.label, 'ゴール');
 assert.equal(node('goal').style.top, 1185 / 12.8 + '%');
-tap([300, 300, 0, 0]); assert.equal(run('si'), js); // 枠の外を押しても進まない
-flush(); tap([20, 1185, 550, 92]); flush(); assert.equal(run('si'), js + 1);
+assert.equal(run('busy'), true); assert.equal(run('si'), js);
+flush(); assert.equal(run('si'), js + 1);
 assert.equal(node('goal').hidden, true);
 // 次の画面は、ゴールだったJavaScriptの確認
 assert.equal(JSON.stringify(run('stage.steps[si].marks')), JSON.stringify([[20, 1028, 550, 92]]));
-// 逆にスクロールすると枠は消える。モッピーの通帳も途中で枠を押せば進む
-run(`si = ${js}; step()`); frame(22); assert.equal(node('goal').hidden, false);
+// 説明の窓に隠れている間は進まない(逆にスクロールすると枠は消える)。隠れていても枠を押せば進む
+const cardRect = node('card').getBoundingClientRect;
+node('card').getBoundingClientRect = () => ({ left: 0, top: 0, width: 295, height: 640, bottom: 640 });
+run(`si = ${js}; step()`);
+frame(21); assert.equal(node('goal').hidden, false); assert.equal(run('busy'), false);
 frame(10); assert.equal(node('goal').hidden, true);
+frame(21); tap([300, 300, 0, 0]); assert.equal(run('si'), js); // 枠の外を押しても進まない
+flush(); tap([20, 1185, 550, 92]); flush(); assert.equal(run('si'), js + 1);
+// 窓の下端を見た目の位置で測る(真ん中に出す窓でも、枠の上端より上で終わっていれば進む)
+node('card').getBoundingClientRect = () => ({ left: 0, top: 180, width: 295, height: 183, bottom: 363 }); // 画像の座標で726
+run(`start(${indexOf('passbook-moppy')}); si = stage.steps.findIndex(s => s.seq?.[0] === "moppymp"); step()`);
+frame(19); assert.equal(run('busy'), true); flush();
+node('card').getBoundingClientRect = () => ({ left: 0, top: 180, width: 295, height: 184, bottom: 364 });
+run('si = stage.steps.findIndex(s => s.seq?.[0] === "moppymp"); step()');
+frame(19); assert.equal(run('busy'), false);
+node('card').getBoundingClientRect = cardRect;
+// モッピーの通帳は、38コマのうち枠が出る19コマ目で進む
 saved.set('v3-device', 'iphone');
 run(`start(${indexOf('passbook-moppy')}); si = stage.steps.findIndex(s => s.seq?.[0] === "moppymp"); step()`);
-const mp = run('si'), mpGoal = run('stage.steps[si].goal');
-frame(19); assert.equal(node('goal').hidden, false);
-tap([mpGoal.x, mpGoal.ys[18], mpGoal.w, mpGoal.h]); flush(); assert.equal(run('si'), mp + 1);
-// FXは⑪のセットが画面に収まる23コマ目から枠を出す。最後の確認の画面も⑪に枠
+const mp = run('si');
+frame(18); assert.equal(run('busy'), false);
+frame(19); assert.equal(node('goal').hidden, false); assert.equal(run('busy'), true);
+flush(); assert.equal(run('si'), mp + 1);
+// FXは⑪のセットが画面に収まる23コマ目で進む。最後の確認の画面も⑪に枠
 run(`start(${indexOf('fx-demo')}); si = stage.steps.findIndex(s => s.seq?.[0] === "fxlist"); step()`);
-frame(22); assert.equal(node('goal').hidden, true);
-frame(23); assert.equal(node('goal').hidden, false); assert.equal(node('goal').dataset.label, '⑪');
-frame(24); flush(); assert.equal(run('stage.steps[si].markLabel'), '⑪');
-console.log('PASS scroll steps show the goal box');
+frame(22); assert.equal(node('goal').hidden, true); assert.equal(run('busy'), false);
+frame(23); assert.equal(node('goal').hidden, false); assert.equal(node('goal').dataset.label, '⑪'); assert.equal(run('busy'), true);
+flush(); assert.equal(run('stage.steps[si].markLabel'), '⑪');
+console.log('PASS scroll steps finish when the goal box is fully visible');
+
+// 上下に並んだ確認の枠では、となりの枠の文字に重なる札は出さない(本人の直し 10/29)
+const labels = () => node('marks').innerHTML.split('</div>').filter(Boolean).map(d => (d.match(/data-label="([^"]*)"/) || [])[1] || '');
+run(`start(0); si = stage.steps.findIndex(s => s.img === "safari-ip4" && s.type === "info"); step()`);
+assert.equal(JSON.stringify(labels()), JSON.stringify(['確認', ''])); // 札は上の枠だけ
+run('renderMarks(stage.steps[si], true)');
+assert.equal(JSON.stringify(labels()), JSON.stringify(['', '確認'])); // 札を枠の下に出すときは下の枠だけ
+run(`start(${indexOf('fx-demo')}); si = stage.steps.findIndex(s => s.img === "fx-list-top" && s.type === "info"); step()`);
+assert.equal(JSON.stringify(labels()), JSON.stringify(['確認', '']));
+// 離れた枠には、どちらにも札を出す
+run(`start(${indexOf('fx-demo')}); si = stage.steps.findIndex(s => s.img === "fx-v1-52"); step()`);
+assert.equal(JSON.stringify(labels()), JSON.stringify(['確認', '確認']));
+console.log('PASS stacked check boxes keep labels off the neighbor box');
