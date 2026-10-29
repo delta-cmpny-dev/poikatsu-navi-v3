@@ -190,6 +190,7 @@
     <img id="img" alt="">
     <div id="scene" hidden aria-hidden="true"></div>
     <div id="target"></div>
+    <div id="goal" class="mark check" hidden></div>
     <div id="marks"></div>
     <div id="warnMark"></div>
     <div id="swipe">👆</div>
@@ -349,7 +350,7 @@
     if (!plain) avoidBoxes(s);
     card.scrollTop = 0;
     // 新しい画面の画像が表示できるまで、説明と枠を隠す(前の画面の上に枠が浮いて見えないように)
-    const layers = [card, target, $('marks')];
+    const layers = [card, target, $('goal'), $('marks')];
     layers.forEach(e => e.style.visibility = 'hidden');
     const reveal = () => { if (stage.steps[si] === s) layers.forEach(e => e.style.visibility = ''); };
     if (img.hidden || !img.src || !img.decode) reveal();
@@ -391,6 +392,13 @@
     const [x, , w, h] = stage.steps[si + 1].rect;
     return [x, s.target.ys[frame - 1], w, h];
   }
+  // goal: スクロールの場面で探す項目(押す場所ではない)。見えているコマだけ「ゴール」の枠を出す
+  function goalRect() {
+    const s = stage.steps[si];
+    if (s.type !== 'scroll' || !s.goal) return null;
+    const y = s.goal.ys[scrollFrame(s) - 1];
+    return y == null ? null : [s.goal.x, y, s.goal.w, s.goal.h];
+  }
 
   function updateTarget() {
     const rect = activeRect();
@@ -401,6 +409,14 @@
     if (rect) {
       const [x, y, w, h] = rect;
       Object.assign(target.style, { left: x / 5.9 + '%', top: y / 12.8 + '%', width: w / 5.9 + '%', height: h / 12.8 + '%' });
+    }
+    const g = goalRect(), goal = $('goal');
+    goal.hidden = !g;
+    if (g) {
+      const [x, y, w, h] = g;
+      goal.dataset.label = stage.steps[si].goal.label || 'ゴール';
+      goal.classList.toggle('below', y < 60);
+      Object.assign(goal.style, { left: x / 5.9 + '%', top: y / 12.8 + '%', width: w / 5.9 + '%', height: h / 12.8 + '%' });
     }
   }
 
@@ -499,6 +515,9 @@
         si++;
         return correct();
       }
+      // 探す項目が見えていれば、それを押してもスクロールを終えられる
+      const g = goalRect();
+      if (g && near(g)) return correct();
       return miss('タップではなく、上にスワイプしてスクロール', px, py);
     }
     if (s.type !== 'tap' || Math.abs(dx) > 14 || Math.abs(dy) > 14) return;

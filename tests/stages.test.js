@@ -54,6 +54,11 @@ for (const stage of stages) test(stage.id + ' data and assets', () => {
           rect([x, y, w, h], label);
         }
       }
+      if (s.goal) {
+        assert.equal(s.goal.ys.length, s.seq[1], label);
+        assert.ok(s.goal.ys.some(y => y != null), label);
+        for (const y of s.goal.ys.filter(y => y != null)) rect([s.goal.x, y, s.goal.w, s.goal.h], label);
+      }
     }
     if (s.type === 'quiz') {
       assert.ok(Array.isArray(s.choices) && s.choices.length >= 2, label);
@@ -96,7 +101,25 @@ test('Safari bars cut on Android never hide a tap target', () => {
     if (s.seq && s.target) s.target.ys.forEach((y, k) => {
       if (y != null) visible(label, `seq/${s.seq[0]}-${String(k + 1).padStart(2, '0')}`, [0, y, 1, st.steps[i + 1].rect[3]]);
     });
+    if (s.seq && s.goal) s.goal.ys.forEach((y, k) => {
+      if (y != null) visible(label, `seq/${s.seq[0]}-${String(k + 1).padStart(2, '0')}`, [0, y, 1, s.goal.h]);
+    });
   });
+});
+// ニケさんの直し(10/28)「必要ないステップは削る」「各画面ごとにゴールを明確にする」
+test('every scroll shows where to go (a tap target or a goal box)', () => {
+  for (const st of stages) st.steps.forEach((s, i) => {
+    if (s.type === 'scroll') assert.ok(s.target || s.goal, st.id + ':' + (i + 1));
+  });
+  assert.doesNotMatch(source, /「コンテンツ」のところまで/);
+});
+test('no info step repeats the instruction of the next tap on the same screen', () => {
+  for (const st of stages) st.steps.forEach((s, i) => {
+    const next = st.steps[i + 1];
+    if (s.type === 'info' && next?.type === 'tap' && s.img && s.img === next.img)
+      assert.ok(!next.text.includes(s.text.replace(/しよう$/, '')), st.id + ':' + (i + 1) + ' ' + s.text);
+  });
+  assert.doesNotMatch(source, /text: '各項目を入力しよう'/);
 });
 test('FX banners have no colored squares', () => {
   assert.doesNotMatch(source, /🟥|🟦/);

@@ -284,3 +284,34 @@ tap([60, 114, 0, 0]); assert.equal(node('toast').textContent, 'そこじゃな�
 flush(); run('si = 0; step()');
 tap([85, 95, 0, 0]); flush(); assert.equal(run('si'), 1);
 console.log('PASS small tap targets accept near taps but keep traps');
+
+// スクロールの場面は、探す項目が見えたら「ゴール」の枠を出す。枠を押してもスクロールを終えられる(ニケさんの直し 10/28)
+saved.set('v3-device', 'android');
+run(`start(${indexOf('android')})`);
+const js = run('stage.steps.findIndex(s => s.seq?.[0] === "ansite")');
+run(`si = ${js}; step()`);
+assert.match(run('stage.steps[si].text'), /「JavaScript」を探そう/);
+assert.equal(node('goal').hidden, true);
+frame(20); assert.equal(node('goal').hidden, true);
+frame(21); assert.equal(node('goal').hidden, false);
+assert.equal(node('goal').dataset.label, 'ゴール');
+assert.equal(node('goal').style.top, 1185 / 12.8 + '%');
+tap([300, 300, 0, 0]); assert.equal(run('si'), js); // 枠の外を押しても進まない
+flush(); tap([20, 1185, 550, 92]); flush(); assert.equal(run('si'), js + 1);
+assert.equal(node('goal').hidden, true);
+// 次の画面は、ゴールだったJavaScriptの確認
+assert.equal(JSON.stringify(run('stage.steps[si].marks')), JSON.stringify([[20, 1028, 550, 92]]));
+// 逆にスクロールすると枠は消える。モッピーの通帳も途中で枠を押せば進む
+run(`si = ${js}; step()`); frame(22); assert.equal(node('goal').hidden, false);
+frame(10); assert.equal(node('goal').hidden, true);
+saved.set('v3-device', 'iphone');
+run(`start(${indexOf('passbook-moppy')}); si = stage.steps.findIndex(s => s.seq?.[0] === "moppymp"); step()`);
+const mp = run('si'), mpGoal = run('stage.steps[si].goal');
+frame(19); assert.equal(node('goal').hidden, false);
+tap([mpGoal.x, mpGoal.ys[18], mpGoal.w, mpGoal.h]); flush(); assert.equal(run('si'), mp + 1);
+// FXは⑪のセットが画面に収まる23コマ目から枠を出す。最後の確認の画面も⑪に枠
+run(`start(${indexOf('fx-demo')}); si = stage.steps.findIndex(s => s.seq?.[0] === "fxlist"); step()`);
+frame(22); assert.equal(node('goal').hidden, true);
+frame(23); assert.equal(node('goal').hidden, false); assert.equal(node('goal').dataset.label, '⑪');
+frame(24); flush(); assert.equal(run('stage.steps[si].markLabel'), '⑪');
+console.log('PASS scroll steps show the goal box');

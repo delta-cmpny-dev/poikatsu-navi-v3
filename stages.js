@@ -2,6 +2,7 @@
 // type: tap=正しい場所をタップ / scroll=指でスクロール / quiz=選択肢 / info=読んで次へ
 // seq: スクロールの場面で使う連続コマ [名前, 枚数](img/seq/名前-01.jpg〜)。len は最後までに必要な指の移動量(画面何枚分か)
 // target: scroll中に押せる項目。fromは表示開始コマ(1始まり)、ysは各コマのy座標。x・幅・高さは直後のtapのrectを使う
+// goal: scroll中に探す項目(押す場所ではない)に出す「ゴール」の枠 { x, w, h, ys }。ysは各コマのy座標(見えないコマは null。tools/track_goal.py で作る)
 // guide: true のステージは最初から正解の枠を表示する(全ステージで有効)
 // traps: 押しがちな間違いの場所と、そのときのひとこと
 // cardAt: 説明を出す高さ(590x1280の座標)。card より優先
@@ -48,9 +49,8 @@ const STAGES = [
       { type: 'tap', img: 'safari-ip1', text: '「IPアドレスを非公開」をタップ', rect: [24, 440, 546, 92] },
       { type: 'tap', img: 'safari-ip2', after: 'safari-ip3', text: '「オフ」をタップしよう', rect: [24, 350, 546, 58] },
       { type: 'tap', img: 'safari-ip3', text: '左上の戻るボタンをタップして、元の画面に戻ろう', rect: [22, 78, 66, 56] },
-      { type: 'info', img: 'safari-ip4', card: 'bottom', next: '確認した', marks: [[25, 425, 540, 75], [25, 505, 540, 76]],
-        text: '「サイト越えトラッキングを防ぐ」と「IPアドレスを非公開」がオフになっていることを確認しよう' },
-      { type: 'tap', img: 'safari-ip4', text: 'そのまま「履歴とWebサイトデータを消去」をタップ', rect: [25, 1128, 540, 72] },
+      { type: 'tap', img: 'safari-ip4', text: '「サイト越えトラッキングを防ぐ」と「IPアドレスを非公開」がオフか確認して、「履歴とWebサイトデータを消去」をタップ',
+        rect: [25, 1128, 540, 72], marks: [[25, 425, 540, 75], [25, 505, 540, 76]] },
       { type: 'tap', img: 'safari-990', text: '「すべての履歴」が選ばれているのを確認して、「履歴を消去」をタップ', rect: [30, 1110, 530, 84], marks: [[38, 798, 515, 77]],
         traps: [{ rect: [520, 420, 70, 70], msg: '閉じないで、消去まで進もう' }] },
       { type: 'quiz', img: 'safari-1130', text: '②の「履歴の消去」は、いつやる？',
@@ -122,7 +122,8 @@ const STAGES = [
       { type: 'scroll', img: 'an-set', seq: ['anset', 24], len: 1.2, text: '下にスクロールして「サイトの設定」を探してタップしよう',
         target: { from: 20, ys: [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1141,1093,1045,998,950] } },
       { type: 'tap', img: 'anset-end', text: '「サイトの設定」をタップ', rect: [16, 950, 550, 60] },
-      { type: 'scroll', img: 'an-site', seq: ['ansite', 24], len: 1.3, text: '下にスクロールして「コンテンツ」のところまで進もう' },
+      { type: 'scroll', img: 'an-site', seq: ['ansite', 24], len: 1.3, text: '下にスクロールして「JavaScript」を探そう',
+        goal: { x: 20, w: 550, h: 92, ys: [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,1185,1132,1080,1028] } },
       { type: 'info', img: 'ansite-end', card: 'top', next: '確認した', marks: [[20, 1028, 550, 92]],
         text: 'まず「JavaScript」が「許可されています」になっていることを確認しよう',
         sub: '初期設定では許可されています。もし許可されていなかったら、タップして許可にしよう。' },
@@ -288,7 +289,7 @@ const STAGES = [
         traps: [{ rect: [49, 578, 492, 56], alert: '「プログラムの検索」欄では絶対に検索しない！！\nよくあるミスです！！\n案件は必ず「セルフバック」から探そう。' }],
         warn: '「プログラムの検索」欄では絶対に検索しない！！\nよくあるミスです！！\n案件は必ず「セルフバック」から探そう。', warnMark: [49, 578, 492, 56] },
       { type: 'tap', img: 'a8f-3', text: '「キーワードで探す」をタップ', rect: [24, 309, 409, 56] },
-      { type: 'tap', img: 'a8f-4', text: '案件名を入力しよう', rect: [24, 312, 541, 62] },
+      { type: 'tap', img: 'a8f-4', text: 'スクールで案内された案件名を、検索欄に入力しよう', sub: 'この練習では、検索欄をタップするだけでOK。', rect: [24, 312, 541, 62] },
       { type: 'tap', img: 'a8f-5', text: '案件をタップ', rect: [24, 493, 455, 192] },
       { type: 'tap', img: 'a8f-6', text: '「セルフバックを行う」をタップ', rect: [37, 941, 401, 78] },
       { type: 'tap', img: 'a8f-7', text: 'もう一度「セルフバックを行う」をタップ', rect: [24, 1032, 541, 77] },
@@ -322,7 +323,8 @@ const STAGES = [
     steps: [
       { type: 'tap', img: 'moppy-top', text: 'Safariでモッピーを開いたら、左上の横3本線を開こう', rect: [22, 175, 64, 64] },
       { type: 'tap', img: 'moppy-menu', text: 'マイページを開こう', rect: [33, 838, 100, 132] },
-      { type: 'scroll', img: 'moppy-menu', seq: ['moppymp', 38], len: 1.4, text: '下にスクロールしよう' },
+      { type: 'scroll', img: 'moppy-menu', seq: ['moppymp', 38], len: 1.4, text: '下にスクロールして「ポイント通帳」を探そう',
+        goal: { x: 22, w: 548, h: 138, ys: [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,726,691,649,622,589,572,579,579,579,571,552,525,515,507,500,493,480,471,460,448] } },
       { type: 'info', img: 'moppy-pending', card: 'bottom', next: '理解した', marks: [[38, 435, 119, 59]],
         text: '判定中：申し込みを実施した直後のステータスです。ポイント獲得条件（FX案件の場合は規定のFX取引）を達成後に承認になります。',
         review: '判定中：申し込みを実施した直後のステータス。ポイント獲得条件（FX案件の場合は規定のFX取引）を達成後に承認になる。' },
@@ -362,10 +364,9 @@ const STAGES = [
       { type: 'tap', img: 'ih-date2', text: '「広告を探す」をタップ', rect: [22, 715, 546, 54] },
       { type: 'tap', img: 'ih-ads', text: '対象の広告をタップ', rect: [22, 786, 546, 56] },
       { type: 'tap', img: 'ih-ads2', text: '「次へ」をタップ', rect: [22, 1065, 546, 56] },
-      { type: 'info', img: 'ih-form', card: 'bottom', next: 'OK', text: '各項目を入力しよう' },
       { type: 'tap', img: 'ih-confirm', text: '各項目を入力後、「入力内容を確認」をタップ', rect: [22, 1003, 546, 56],
         review: '申込完了メールなど、申し込んだことが分かるメールの内容を貼り付けて「入力内容を確認」。' },
-      { type: 'info', text: '問い合わせ完了！', sub: 'あとはハピタスからの返事を待とう。' },
+      { type: 'info', text: '確認画面で内容を確かめて送信したら、問い合わせ完了！', sub: 'あとはハピタスからの返事を待とう。' },
     ],
   },
   {
@@ -403,7 +404,6 @@ const STAGES = [
         review: '広告のご利用日は、モッピーを経由して申し込んだ日（POINT GET!を押した日）。' },
       { type: 'tap', img: 'im-hist', text: '「2週間分の広告利用履歴を表示する」にチェック', rect: [53, 452, 375, 38] },
       { type: 'tap', img: 'im-ads', after: 'im-ads2', text: '対象の広告をタップ', rect: [55, 782, 470, 56] },
-      { type: 'info', img: 'im-send', card: 'bottom', next: 'OK', text: '各項目を入力しよう' },
       { type: 'tap', img: 'im-send', text: '各項目を入力後、「個人情報の取り扱い・免責事項に同意して送信」をタップ', rect: [55, 810, 480, 76] },
       { type: 'info', text: '問い合わせ完了！', sub: 'あとはモッピーからの返事を待とう。' },
     ],
@@ -414,9 +414,7 @@ const STAGES = [
     lead: 'MXNJPYで合計101lotの取引を練習しよう',
     guide: true,
     steps: [
-      { type: 'info', img: 'fx-light3', card: 'mid', next: '確認した', marks: [[90, 123, 413, 84]], markStyle: 'bare', markLabel: '「LIGHTモード」がOFFか確認',
-        text: 'アプリの「LIGHTモード」がOFFになっていることを確認しよう', sub: 'OFFになっていなければ、ここをタップしてOFFにしよう。' },
-      { type: 'tap', img: 'fx-light3', card: 'mid', text: '下の「スピード注文」をタップ', rect: [198, 1165, 95, 59],
+      { type: 'tap', img: 'fx-light3', card: 'mid', text: '「LIGHTモード」がOFFか確認して、下の「スピード注文」をタップ', sub: 'OFFになっていなければ、「LIGHTモード」をタップしてOFFにしよう。', rect: [198, 1165, 95, 59],
         marks: [[90, 123, 413, 84]], markStyle: 'bare', markLabel: '① 「LIGHTモード」がOFFか確認' },
       { type: 'tap', img: 'fx-v1-5', text: '通貨ペアの欄をタップ', rect: [8, 113, 284, 57] },
       { type: 'tap', img: 'fx-v1-15', text: '「MXNJPY」を選ぼう', rect: [60, 520, 150, 105],
@@ -449,8 +447,9 @@ const STAGES = [
       { type: 'tap', img: 'fx-v4-28', text: '「約定履歴」をタップ', rect: [10, 612, 575, 62] },
       { type: 'info', img: 'fx-list-top', card: 'bottom', marks: [[6, 209, 580, 160], [6, 376, 580, 160]],
         text: '買と売の2行で1セット。①の1lotも合わせて、合計11セットあるか数えよう' },
-      { type: 'scroll', img: 'fx-list-top', seq: ['fxlist', 24], len: 1.6, text: '下にスクロールして、⑪まで全部あるか確認しよう' },
-      { type: 'info', img: 'fx-list-end', card: 'top', next: '確認した',
+      { type: 'scroll', img: 'fx-list-top', seq: ['fxlist', 24], len: 1.6, text: '下にスクロールして、⑪まで全部あるか確認しよう',
+        goal: { x: 4, w: 582, h: 160, label: '⑪', ys: [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,987,946] } },
+      { type: 'info', img: 'fx-list-end', card: 'top', next: '確認した', marks: [[4, 946, 582, 160]], markLabel: '⑪',
         text: '⑪まで、合計11セットあることを確認できたら完了！',
         warn: '10lotの買と売の2行で1セット。\n10lotが10セット、1lotが1セット、合計11セットあることを確認！\n11セット全て表示されない場合は、画面を下にスクロールしよう。' },
     ],
